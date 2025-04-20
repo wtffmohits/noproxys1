@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062495598488",
+    "project_id": "rajputji0",
+    "storage_bucket": "rajputji0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062495598488:android:aa27d35baf1c7b81315ded",
+        "android_client_info": {
+          "package_name": "com.example.noproxys1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbS76xXixYk475FkP_LWQ2V4Kxq5tkJhA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
