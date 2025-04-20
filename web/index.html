@@ -29,25 +29,70 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>noproxys1</title>
+  <!-- stylesheet-->
+  <link rel="stylesheet" href="style.css" />
+
+  <title>Dynamic QR Attendance</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <div class="container">
-    <div class="qr-section">
-      <div id="qr-container" class="blur">
-        <div id="qrcode"></div>
+    <header>
+      <h1>Dynamic QR Attendance</h1>
+      <div style="position:relative;">
+        <div class="bell" id="bellIcon">🔔<span class="badge" id="notificationBadge">0</span></div>
+        <div class="dropdown hidden" id="notifDropdown">
+          <h3>Attendance Records</h3>
+          <ul id="notifList"><li>No records yet</li></ul>
+        </div>
       </div>
-      <input type="text" id="lectureCode" placeholder="Enter Lecture Code" />
-      <button onclick="generateQR()">Generate</button>
-      <button onclick="completeLecture()">Complete</button>
-    </div>
-    <div class="student-list">
-      <h3>Scanned Students</h3>
-      <ul id="studentList"></ul>
+      <div style="position:relative;">
+        <button id="historyBtn">History</button>
+        <div class="dropdown hidden" id="historyDropdown">
+          <h3>Lecture History</h3>
+          <ul id="historyList"><li>No history</li></ul>
+        </div>
+      </div>
+    </header>
+    <div class="main">
+      <div class="qr-section">
+        <div class="qr-box">
+          <div class="timer" id="timer">--s</div>
+          <img src="https://via.placeholder.com/300x300?text=QR+Code" id="qrCodeImg" alt="QR Code" />
+          <div class="status">QR Code Active</div>
+        </div>
+        <p class="hint">Enter lecture code and press start</p>
+      </div>
+      <div class="control-section">
+        <h2>QR Code Attendance System</h2>
+        <p>Generate dynamic QR codes that change every 5 seconds for secure attendance tracking</p>
+        <div class="field">
+          <label for="lectureCode">Lecture Code</label>
+          <input type="text" id="lectureCode" placeholder="Enter lecture code" />
+        </div>
+        <div class="buttons">
+          <button class="start" id="startBtn" disabled>▶ Start</button>
+          <button class="end" id="endBtn" disabled>◼ End</button>
+        </div>
+        <div class="export-container">
+          <button id="exportBtn" class="export-btn" disabled>Export</button>
+          <div class="dropdown hidden" id="exportDropdown">
+            <ul>
+              <li id="exportCsv">Download CSV</li>
+              <li id="exportPdf">Download PDF</li>
+            </ul>
+          </div>
+        </div>
+        <div class="summary">
+          <div>Students Present: <span id="studentCount">0</span><span class="status inactive" id="sessionStatus">Session Inactive</span></div>
+          <ul id="attendanceList"><li>No students have been marked present yet</li></ul>
+        </div>
+      </div>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
