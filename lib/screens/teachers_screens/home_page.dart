@@ -18,7 +18,9 @@ class HomePageT extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePageT> {
-  final TaskController _taskController = Get.put(TaskController());
+  final TaskController _taskController = Get.put(
+    TaskController(teacherType: 'Assistant Prof'),
+  );
   DateTime _selectedDate = DateTime.now();
   @override
   void initState() {
@@ -115,14 +117,14 @@ class _HomePageState extends State<HomePageT> {
                 context,
                 task.scheduleCode,
                 () {
-                  // ✅ Mark as Completed: Sirf Screen se Hide hoga
+                  // Mark as Completed: Just hide from screen
                   setState(() {
                     filteredTasks.remove(task);
                   });
                 },
                 () {
-                  // ✅ Delete Lecture: Firebase se bhi Delete hoga
-                  // _taskController.deleteLecture(task.scheduleCode);
+                  // Delete Lecture from Firebase
+                  _taskController.deleteTask(task.scheduleCode);
                 },
               );
             },
@@ -139,8 +141,6 @@ class _HomePageState extends State<HomePageT> {
           );
         },
       );
-
-      // 🔹 Firestore se Data Fetch Karne Ka Method
     });
   }
 }

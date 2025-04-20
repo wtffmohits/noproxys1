@@ -221,11 +221,25 @@ class _SchedulingState extends State<Scheduling> {
       scheduleCode: scheduleCode,
     );
 
-    // 🔥 Save task in Firestore
-    String taskId = await DbHelper.insert(newTask);
-    if (taskId.isNotEmpty) {
-      Get.snackbar("Success", "Task Scheduled Successfully");
+    // Save task in Firestore
+    bool success = await taskController.addTask(newTask);
+    if (success) {
+      Get.snackbar(
+        "Success",
+        "Schedule Created Successfully",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
       Get.back();
+    } else {
+      Get.snackbar(
+        "Error",
+        "Failed to create schedule",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 

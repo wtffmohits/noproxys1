@@ -1,4 +1,21 @@
-// script.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCqQEBkKrONGJvufR9F-tgU7VUTKqpVy8k",
+  authDomain: "rajputji0.firebaseapp.com",
+  projectId: "rajputji0",
+  storageBucket: "rajputji0.firebasestorage.app",
+  messagingSenderId: "1062495598488",
+  appId: "1:1062495598488:web:12a7f964ce69d6d2315ded",
+  measurementId: "G-P54S8FXF4Y"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
+
 const startBtn = document.getElementById('startBtn');
 const endBtn = document.getElementById('endBtn');
 const lectureCodeInput = document.getElementById('lectureCode');
@@ -22,6 +39,7 @@ const exportPdf = document.getElementById('exportPdf');
 let intervalId, countdown;
 let students = [];
 let history = {};
+let qrInterval;
 
 lectureCodeInput.addEventListener('input', () => {
   const code = lectureCodeInput.value.trim();
@@ -40,9 +58,19 @@ historyBtn.addEventListener('click', () => {
 });
 exportBtn.addEventListener('click', () => exportDropdown.classList.toggle('hidden'));
 
-function startSession() {
+async function startSession() {
   const code = lectureCodeInput.value.trim();
   if (!code) return;
+
+  const tasksRef = collection(db, "Tasks");
+  const q = query(tasksRef, where("scheduleCode", "==", code));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    alert("Schedule code is invalid ❌");
+    return;
+  }
+
   startBtn.disabled = true;
   endBtn.disabled = false;
   lectureCodeInput.disabled = true;
@@ -52,13 +80,15 @@ function startSession() {
   updateAttendanceUI();
   updateNotifications();
   updateExports();
-  countdown = 5;
+
+  countdown = 15;
   updateQRCode();
-  intervalId = setInterval(() => {
-    countdown = 5;
+  qrInterval = setInterval(() => {
+    countdown = 15;
     updateQRCode();
-  }, 5000);
-  setInterval(() => {
+  }, 15000);
+
+  intervalId = setInterval(() => {
     if (countdown > 0) countdown--;
     timerEl.textContent = countdown + 's';
   }, 1000);
@@ -66,6 +96,7 @@ function startSession() {
 
 function endSession() {
   clearInterval(intervalId);
+  clearInterval(qrInterval);
   const code = lectureCodeInput.value.trim();
   history[code] = students.slice();
   lectureCodeInput.disabled = false;
@@ -164,7 +195,6 @@ exportPdf.addEventListener('click', () => {
 startBtn.addEventListener('click', startSession);
 endBtn.addEventListener('click', endSession);
 
-// Demo scan for testing
 setTimeout(() => {
   recordAttendance({ name: 'Quinn Wilson', id: 'STU6939', time: new Date().toLocaleTimeString() });
 }, 8000);

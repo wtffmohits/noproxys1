@@ -9,6 +9,7 @@ import 'package:noproxys/components/controller/lacture_card.dart';
 import 'package:noproxys/components/controller/task_controller.dart';
 import 'package:noproxys/model/task.dart';
 import 'package:noproxys/screens/Student_screen/Attendance_screen.dart';
+import 'package:noproxys/screens/Student_screen/lecture_qr_scan_screen.dart';
 import 'package:noproxys/widgets/Appbar/Appbar.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,12 +20,21 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final TaskController _taskController = Get.put(TaskController());
+  final TaskController _assistantProfController = Get.put(
+    TaskController(teacherType: 'Assistant Prof'),
+    tag: 'assistant_prof',
+  );
+  final TaskController _hodController = Get.put(
+    TaskController(teacherType: 'HOD'),
+    tag: 'hod',
+  );
   DateTime _selectedDate = DateTime.now();
+
   @override
   void initState() {
     super.initState();
-    _taskController.getTasks();
+    _assistantProfController.getTasks();
+    _hodController.getTasks();
   }
 
   @override
@@ -93,8 +103,14 @@ class _HomePageState extends State<HomePage> {
 
   Widget UpcomingLectures() {
     return Obx(() {
+      // Combine lectures from both Assistant Prof and HOD
+      List<Task> allTasks = [
+        ..._assistantProfController.taskList,
+        ..._hodController.taskList,
+      ];
+
       List<Task> filteredTasks =
-          _taskController.taskList
+          allTasks
               .where(
                 (task) => task.date == DateFormat.yMd().format(_selectedDate),
               )
@@ -112,10 +128,12 @@ class _HomePageState extends State<HomePage> {
           Task task = filteredTasks[index];
           return GestureDetector(
             onTap: () {
-              showLectureOptions(context, "CS-101", () {
+              showLectureOptions(context, task.title ?? "CS-101", () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => QrScanScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const LectureQrScanScreen(),
+                  ),
                 );
               });
             },
@@ -132,8 +150,6 @@ class _HomePageState extends State<HomePage> {
           );
         },
       );
-
-      // 🔹 Firestore se Data Fetch Karne Ka Method
     });
   }
 }
