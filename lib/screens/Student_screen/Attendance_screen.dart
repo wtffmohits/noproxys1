@@ -8,7 +8,11 @@ class QrScanScreen extends StatelessWidget {
   const QrScanScreen({super.key});
 
   // Function to mark attendance in Firestore
-  Future<void> markAttendance(String qrData, String studentId, String studentName) async {
+  Future<void> markAttendance(
+    String qrData,
+    String studentId,
+    String studentName,
+  ) async {
     try {
       // Split QR data to get lecture code
       final parts = qrData.split('-');
@@ -34,12 +38,15 @@ class QrScanScreen extends StatelessWidget {
       });
 
       // You can also update the student's attendance history if needed
-      await firestore.collection('Students').doc(studentId).collection('AttendanceHistory').add({
-        'lectureCode': lectureCode,
-        'timestamp': timestamp,
-        'status': 'Present',
-      });
-
+      await firestore
+          .collection('Students')
+          .doc(studentId)
+          .collection('AttendanceHistory')
+          .add({
+            'lectureCode': lectureCode,
+            'timestamp': timestamp,
+            'status': 'Present',
+          });
     } catch (e) {
       print('Error marking attendance: $e');
       // Handle error appropriately

@@ -59,7 +59,7 @@ class NavigationController extends GetxController {
   final screens = [
     HomePage(),
     const QrScanScreen(),
-    const Activity(),
+    PieChartSample(),
     const ProfileScreen(),
   ];
 }
