@@ -155,9 +155,7 @@ class _SchedulingState extends State<Scheduling> {
   }
 
   void _validateAndAddTask() {
-    if (_titleController.text.isNotEmpty && _noteController.text.isNotEmpty) {
-      _addTaskToDb();
-    } else {
+    if (_titleController.text.isEmpty || _noteController.text.isEmpty) {
       Get.snackbar(
         "Error",
         "Please fill all the fields",
@@ -165,7 +163,22 @@ class _SchedulingState extends State<Scheduling> {
         backgroundColor: Colors.red,
         icon: Icon(Icons.warning_amber_rounded),
       );
+      return;
     }
+
+    if (taskController.teacherType == null ||
+        taskController.teacherId == null) {
+      Get.snackbar(
+        "Error",
+        "Teacher information not initialized. Please try again.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        icon: Icon(Icons.warning_amber_rounded),
+      );
+      return;
+    }
+
+    _addTaskToDb();
   }
 
   void _getDateFromUser() async {
@@ -235,7 +248,7 @@ class _SchedulingState extends State<Scheduling> {
     } else {
       Get.snackbar(
         "Error",
-        "Failed to create schedule",
+        "Failed to create schedule. Please try again.",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,

@@ -18,9 +18,7 @@ class HomePageT extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePageT> {
-  final TaskController _taskController = Get.put(
-    TaskController(teacherType: 'Assistant Prof'),
-  );
+  final TaskController _taskController = Get.put(TaskController());
   DateTime _selectedDate = DateTime.now();
   @override
   void initState() {

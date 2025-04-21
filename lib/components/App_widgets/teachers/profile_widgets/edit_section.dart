@@ -227,7 +227,10 @@ class _ProfileEditPageState extends State<ProfileEditPaget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailRow('Department', teacherData?["Department"] ?? "N/A"),
+        _buildDetailRow(
+          'Department',
+          (teacherData?["Department"] as List<dynamic>?)?.join(", ") ?? "N/A",
+        ),
         _buildDetailRow('ID', teacherData?["ID"] ?? "N/A"),
         // _buildDetailRow('Year', teacherData?["Year"] ?? "N/A"),
         // _buildDetailRow('Semester', teacherData?["Sem"] ?? "N/A"),

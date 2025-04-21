@@ -6,7 +6,7 @@ import 'package:noproxys/components/App_widgets/students/Home_widgets/checkin.da
 import 'package:noproxys/components/App_widgets/students/Home_widgets/overview.dart';
 import 'package:noproxys/components/Buttons/lacture_button_sheetS.dart';
 import 'package:noproxys/components/controller/lacture_card.dart';
-import 'package:noproxys/components/controller/task_controller.dart';
+import 'package:noproxys/components/controller/student_lectures_controller.dart';
 import 'package:noproxys/model/task.dart';
 import 'package:noproxys/screens/Student_screen/Attendance_screen.dart';
 import 'package:noproxys/screens/Student_screen/lecture_qr_scan_screen.dart';
@@ -20,22 +20,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final TaskController _assistantProfController = Get.put(
-    TaskController(teacherType: 'Assistant Prof'),
-    tag: 'assistant_prof',
-  );
-  final TaskController _hodController = Get.put(
-    TaskController(teacherType: 'HOD'),
-    tag: 'hod',
+  final StudentLecturesController _lecturesController = Get.put(
+    StudentLecturesController(),
   );
   DateTime _selectedDate = DateTime.now();
-
-  @override
-  void initState() {
-    super.initState();
-    _assistantProfController.getTasks();
-    _hodController.getTasks();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,14 +91,8 @@ class _HomePageState extends State<HomePage> {
 
   Widget UpcomingLectures() {
     return Obx(() {
-      // Combine lectures from both Assistant Prof and HOD
-      List<Task> allTasks = [
-        ..._assistantProfController.taskList,
-        ..._hodController.taskList,
-      ];
-
       List<Task> filteredTasks =
-          allTasks
+          _lecturesController.lecturesList
               .where(
                 (task) => task.date == DateFormat.yMd().format(_selectedDate),
               )
