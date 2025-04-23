@@ -8,7 +8,6 @@ import 'package:noproxys/components/Buttons/lacture_button_sheetS.dart';
 import 'package:noproxys/components/controller/lacture_card.dart';
 import 'package:noproxys/components/controller/student_lectures_controller.dart';
 import 'package:noproxys/model/task.dart';
-import 'package:noproxys/screens/Student_screen/Attendance_screen.dart';
 import 'package:noproxys/screens/Student_screen/lecture_qr_scan_screen.dart';
 import 'package:noproxys/widgets/Appbar/Appbar.dart';
 
