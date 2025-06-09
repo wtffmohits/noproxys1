@@ -28,6 +28,8 @@ class _HomePageState extends State<HomePageT> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: Colors.blue,
       appBar: const PreferredSize(
@@ -40,7 +42,11 @@ class _HomePageState extends State<HomePageT> {
           child: Column(
             children: [
               Container(
-                width: double.infinity,
+                height:
+                    size.height -
+                    kToolbarHeight -
+                    bottomPadding, // Adjust height
+                width: size.width,
                 decoration: const BoxDecoration(
                   color: Color.fromRGBO(245, 245, 245, 1.0),
                   borderRadius: BorderRadius.only(

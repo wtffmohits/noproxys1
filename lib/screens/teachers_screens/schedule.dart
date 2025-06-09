@@ -31,6 +31,8 @@ class _SchedulingState extends State<Scheduling> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: Colors.blue,
       appBar: AppBar(
@@ -40,8 +42,9 @@ class _SchedulingState extends State<Scheduling> {
       body: SingleChildScrollView(
         child: SafeArea(
           child: Container(
-            width: MediaQuery.of(context).size.width,
-            // height: MediaQuery.of(context).size.height,
+            height:
+                size.height - kToolbarHeight - bottomPadding, // Adjust height
+            width: size.width,
             decoration: BoxDecoration(
               color: Color.fromRGBO(245, 245, 245, 1.000),
               borderRadius: BorderRadius.only(
