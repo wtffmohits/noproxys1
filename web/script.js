@@ -43,7 +43,7 @@ let intervalId, countdown;
 let students = [];
 let history = {};
 let qrInterval;
-const validScheduleCodes = ['RCTS6Q', 'IIWFM0', '5L4NMI', '6TZ4XM', 'JZ1SD5'];
+const validScheduleCodes = ['RZR4X2', 'VVH19D', 'L3D5ZK', '6TZ4XM', 'JZ1SD5'];
 
 // Event Listeners
 lectureCodeInput.addEventListener('input', handleLectureCodeInput);

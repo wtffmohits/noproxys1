@@ -23,27 +23,17 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      print("❗User not logged in.");
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
       return;
     }
 
-    String? originalPhone = user.phoneNumber;
-    print("📱 FirebaseAuth phone: $originalPhone");
-
-    String normalizedPhone = originalPhone ?? "";
-    if (!normalizedPhone.startsWith('+91') && normalizedPhone.length == 10) {
-      normalizedPhone = '+91$normalizedPhone';
+    String? phone = user.phoneNumber ?? "";
+    if (!phone.startsWith('+91') && phone.length == 10) {
+      phone = '+91$phone';
     }
-
-    print("🔍 Searching for: $normalizedPhone");
 
     try {
       final firestore = FirebaseFirestore.instance;
-
-      // 🔥 College Info
       final collageDoc =
           await firestore
               .collection('Collages')
@@ -62,20 +52,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
       for (var deptDoc in deptSnapshot.docs) {
         final deptName = deptDoc.id;
-        print("📚 Department: $deptName");
-
         final divisionRef = collegeRef.doc(deptName).collection('Devision');
-
         final batchSnapshot = await divisionRef.get();
-
-        if (batchSnapshot.docs.isEmpty) {
-          print("⚠️ No batches found under $deptName");
-        }
 
         for (var batchDoc in batchSnapshot.docs) {
           final batchName = batchDoc.id;
-          print("🧾 Batch: $batchName");
-
           final studentIdRef = divisionRef
               .doc(batchName)
               .collection('student-id');
@@ -86,9 +67,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             final data = studentDoc.data();
             final studentId = studentDoc.id;
 
-            print("👤 Checking: $studentId => ${data['Contact']}");
-
-            if (data['Contact'] == normalizedPhone) {
+            if (data['Contact'] == phone) {
               setState(() {
                 studentData = {
                   ...data,
@@ -100,23 +79,16 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 };
                 isLoading = false;
               });
-
-              print("✅ Found student: ${data['Name']}");
               return;
             }
           }
         }
       }
 
-      print("❌ No student found for: $normalizedPhone");
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     } catch (e) {
-      print("🔥 Firestore query error: $e");
-      setState(() {
-        isLoading = false;
-      });
+      print("Error: $e");
+      setState(() => isLoading = false);
     }
   }
 
@@ -133,85 +105,63 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               ? const Center(child: CircularProgressIndicator())
               : studentData == null
               ? const Center(child: Text("No data found."))
-              : SingleChildScrollView(
-                child: SafeArea(
-                  child: Container(
-                    width: double.infinity,
-                    height:
-                        MediaQuery.of(context).size.height *
-                        0.85, // 85% of screen height
-                    decoration: const BoxDecoration(
-                      color: Color.fromRGBO(245, 245, 245, 1.0),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
+              : Stack(
+                children: [
+                  Container(height: 200, color: Colors.blue),
+                  SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(25, 160, 25, 30),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.all(25),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const CircleAvatar(
+                              radius: 60,
+                              backgroundImage: AssetImage(
+                                'assets/images/mohits.jpeg',
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            buildTextField(
+                              "Full Name",
+                              studentData?["Name"] ?? "N/A",
+                            ),
+                            buildTextField(
+                              "Email",
+                              studentData?["email"] ?? "N/A",
+                            ),
+                            buildTextField(
+                              "Contact",
+                              studentData?["Contact"] ?? "N/A",
+                            ),
+                            const SizedBox(height: 20),
+                            _buildCollegeChip(),
+                            const SizedBox(height: 20),
+                            _buildHeaderSection(),
+                          ],
+                        ),
                       ),
                     ),
-                    padding: const EdgeInsets.all(25.0),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        const CircleAvatar(
-                          radius: 60,
-                          backgroundImage: AssetImage(
-                            'assets/images/mohits.jpeg',
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        buildTextField(
-                          "Full Name",
-                          studentData?["Name"] ?? "Not Available",
-                        ),
-                        buildTextField(
-                          "Email",
-                          studentData?["email"] ?? "Not Available",
-                        ),
-                        buildTextField(
-                          "Contact number",
-                          studentData?["Contact"] ?? "Not Available",
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 15,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blueGrey,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                "College:",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  studentData?["Collage"] ?? "Not Available",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        _buildHeaderSection(),
-                      ],
-                    ),
                   ),
-                ),
+                ],
               ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton(
+          onPressed: () {
+            // Save logic here
+          },
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 15),
+          ),
+          child: const Text("Save", style: TextStyle(fontSize: 18)),
+        ),
+      ),
     );
   }
 
@@ -235,6 +185,31 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           ),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCollegeChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Text(
+            "College: ",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: Text(
+              studentData?["Collage"] ?? "Not Available",
+              style: const TextStyle(color: Colors.white),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -271,21 +246,13 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   Widget _buildSubjectDetailsSection() {
     List<dynamic> subjectsList = studentData?["Subject"] ?? [];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Subjects:', style: TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 5),
-        ...subjectsList.map((subject) => _buildSubjectItem(subject.toString())),
+        ...subjectsList.map((subject) => Text('- $subject')).toList(),
       ],
-    );
-  }
-
-  Widget _buildSubjectItem(String subject) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text('- $subject'),
     );
   }
 }
