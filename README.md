@@ -14,14 +14,14 @@ A modern, mobile-first Flutter app built to manage student & teacher attendance 
 - 🔔 Lecture Reminders & Notification Panel (planned)
 
 ## 📸 UI Preview
-![Onbording](screenshorts/onbording1.jpg)
-![Home](screenshots/Home_page.jpg)
-![Scan](screenshots/QR_Scan.jpg)
-![Chart](screenshots/Attendance.jpg)
-![Schedule](screenshots/schedule_lac.jpg)
-![Login](screenshorts/login_phone.jpg),
-![OTP](screenshorts/login_UI.jpg)
-![Profile Details](screenshorts/profile_details.jpg)
+![Onbording](assets/screenshorts/onbording1.jpg)
+![Home](assets/screenshots/Home_page.jpg)
+![Scan](assets/screenshots/QR_Scan.jpg)
+![Chart](assets/screenshots/Attendance.jpg)
+![Schedule](assets/screenshots/schedule_lac.jpg)
+![Login](assets/screenshorts/login_phone.jpg),
+![OTP](assets/screenshorts/login_UI.jpg)
+![Profile Details](assets/screenshorts/profile_details.jpg)
 
 ## 🛠️ Built With
 - Flutter 3.x
