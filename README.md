@@ -23,12 +23,12 @@ A modern, mobile-first Flutter app built to manage student & teacher attendance 
     <td><img src="assets/screenshorts/login_UI.jpg" width="200"/></td>
   </tr>
   <tr>
-    <td><img src="assets/screenshots/Home_page.jpg" width="200"/></td>
-    <td><img src="assets/screenshots/QR_Scan.jpg" width="200"/></td>
-    <td><img src="assets/screenshots/Attendance.jpg" width="200"/></td>
+    <td><img src="assets/screenshorts/Home_page.jpg" width="200"/></td>
+    <td><img src="assets/screenshorts/QR_Scan.jpg" width="200"/></td>
+    <td><img src="assets/screenshorts/Attendance.jpg" width="200"/></td>
   </tr>
   <tr>
-    <td><img src="assets/screenshots/schedule_lac.jpg" width="200"/></td>
+    <td><img src="assets/screenshorts/schedule_lac.jpg" width="200"/></td>
     <td><img src="assets/screenshorts/profile_details.jpg" width="200"/></td>
   </tr>
 </table>
