@@ -63,3 +63,7 @@ class NavigationController extends GetxController {
     const ProfileScreen(),
   ];
 }
+
+
+// this is a simple bottom navigation bar implementation using GetX for state management.
+// It allows navigation between four screens: Home, Attendance, Activity, and Profile.

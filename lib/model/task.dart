@@ -55,3 +55,6 @@ class Task {
     return data;
   }
 }
+
+
+// I know the code above is not complete, but it provides a good starting point for the Task model.

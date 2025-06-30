@@ -269,3 +269,13 @@ class AuthService {
     }
   }
 }
+
+
+
+// This code provides a complete implementation of Firebase authentication methods
+// including sending OTP, verifying OTP, and handling user data storage in Firestore.
+// It also includes a test login method for quick testing purposes.
+// The `AuthService` class encapsulates all authentication-related methods.
+// The `sendOTP` function initiates the OTP verification process, while the `verifyOTP` function handles the OTP verification and user data storage.
+// The `loginWithTestNumber` method allows for quick testing with a predefined test number and OTP.
+// The code also includes error handling and user feedback through SnackBars.
