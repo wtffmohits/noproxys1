@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="noproxys1">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <!-- App Title -->
+  <title>Dynamic QR Attendance</title>
+
+  <!-- Firebase SDKs -->
+  <script defer src="/__/firebase/12.0.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-auth-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-database-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-firestore-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-functions-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-messaging-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-storage-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-analytics-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-remote-config-compat.js"></script>
+  <script defer src="/__/firebase/12.0.0/firebase-performance-compat.js"></script>
+  <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Dynamic QR Attendance</h1>
+      <div style="position:relative;">
+        <div class="bell" id="bellIcon">🔔<span class="badge" id="notificationBadge">0</span></div>
+        <div class="dropdown hidden" id="notifDropdown">
+          <h3>Attendance Records</h3>
+          <ul id="notifList"><li>No records yet</li></ul>
+        </div>
+      </div>
+      <div style="position:relative;">
+        <button id="historyBtn">History</button>
+        <div class="dropdown hidden" id="historyDropdown">
+          <h3>Lecture History</h3>
+          <ul id="historyList"><li>No history</li></ul>
+        </div>
+      </div>
+    </header>
+    <div class="main">
+      <div class="qr-section">
+        <div class="qr-box">
+          <div class="timer" id="timer">--s</div>
+          <img src="https://via.placeholder.com/300x300?text=QR+Code" id="qrCodeImg" alt="QR Code" />
+          <div class="status">QR Code Active</div>
+        </div>
+        <p class="hint">Enter lecture code and press start</p>
+      </div>
+      <div class="control-section">
+        <h2>QR Code Attendance System</h2>
+        <p>Generate dynamic QR codes that change every 5 seconds for secure attendance tracking</p>
+        <div class="field">
+          <label for="lectureCode">Lecture Code</label>
+          <input type="text" id="lectureCode" placeholder="Enter lecture code" />
+        </div>
+        <div class="buttons">
+          <button class="start" id="startBtn" disabled>▶ Start</button>
+          <button class="end" id="endBtn" disabled>◼ End</button>
+        </div>
+        <div class="export-container">
+          <button id="exportBtn" class="export-btn" disabled>Export</button>
+          <div class="dropdown hidden" id="exportDropdown">
+            <ul>
+              <li id="exportCsv">Download CSV</li>
+              <li id="exportPdf">Download PDF</li>
+            </ul>
+          </div>
+        </div>
+        <div class="summary">
+          <div>Students Present: <span id="studentCount">0</span><span class="status inactive" id="sessionStatus">Session Inactive</span></div>
+          <ul id="attendanceList"><li>No students have been marked present yet</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF Export Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Your App Script -->
+  <script type="module" src="script.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const loadEl = document.createElement('p');
+      loadEl.id = 'load';
+      loadEl.style = 'text-align:center;color:#999;font-size:12px;margin-top:20px;';
+      document.body.appendChild(loadEl);
+
+      try {
+        let app = firebase.app();
+        let features = [
+          'auth',
+          'database',
+          'firestore',
+          'functions',
+          'messaging',
+          'storage',
+          'analytics',
+          'remoteConfig',
+          'performance',
+        ].filter(feature => typeof app[feature] === 'function');
+        loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+      } catch (e) {
+        console.error(e);
+        loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+      }
+    });
+  </script>
+</body>
+</html>
