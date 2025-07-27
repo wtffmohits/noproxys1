@@ -4,16 +4,54 @@ import 'package:noproxys/widgets/Themes/buttons.dart';
 import 'package:pinput/pinput.dart';
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key, required this.verificationId});
-
   final String verificationId;
+  final String phoneNumber;
+
+  const OtpScreen({
+    super.key,
+    required this.verificationId,
+    required this.phoneNumber,
+  });
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  String? otpCode; // ← Move this outside build()
+  final AuthService _authService = AuthService();
+  String? otpCode;
+  bool _isLoading = false;
+
+  void handleVerifyOtp() {
+    if (otpCode != null && otpCode!.length == 6) {
+      setState(() {
+        _isLoading = true;
+      });
+      _authService.verifyOtp(
+        context: context,
+        verificationId: widget.verificationId,
+        smsCode: otpCode!,
+      );
+      // Only set loading to false if verification fails (handled in AuthService)
+      // On success, it will navigate away.
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Enter 6-digit OTP")));
+    }
+  }
+
+  void handleResendOtp() {
+    _authService.sendOtp(context: context, phoneNumber: widget.phoneNumber);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("A new OTP has been sent.")));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +88,6 @@ class _OtpScreenState extends State<OtpScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 15),
-
-                  // OTP Input Field
                   Pinput(
                     length: 6,
                     showCursor: true,
@@ -68,42 +104,25 @@ class _OtpScreenState extends State<OtpScreen> {
                       ),
                     ),
                     onChanged: (value) {
-                      otpCode = value; // ← Save the value to variable
+                      otpCode = value;
                     },
+                    // ** FIX: onSubmitted now calls the correct handler **
                     onSubmitted: (value) {
-                      AuthService().verifyOTP(
-                        context,
-                        value,
-                        widget.verificationId,
-                      );
+                      handleVerifyOtp();
                     },
                   ),
-
                   const SizedBox(height: 25),
-
-                  // Verify Button
                   SizedBox(
                     width: MediaQuery.of(context).size.width,
                     height: 50,
                     child: CustomButton(
-                      text: "Verify",
+                      text: _isLoading ? "Verifying..." : "Verify",
                       onPressed: () {
-                        if (otpCode != null && otpCode!.length == 6) {
-                          AuthService().verifyOTP(
-                            context,
-                            otpCode!,
-                            widget.verificationId,
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Enter 6-digit OTP")),
-                          );
-                        }
+                        if (!_isLoading) handleVerifyOtp();
                       },
                     ),
                   ),
-
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 20), // <-- Added missing SizedBox
                   const Text(
                     "Didn't receive any code?",
                     style: TextStyle(
@@ -113,12 +132,15 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    "Resend New Code",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                  TextButton(
+                    onPressed: handleResendOtp,
+                    child: const Text(
+                      "Resend New Code",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
                 ],

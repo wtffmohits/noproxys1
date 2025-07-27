@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:noproxys/Authantication/firebase_auth/firebase_auth_method.dart';
@@ -12,6 +13,8 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController phoneController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   Country selectedCountry = Country(
     phoneCode: "91",
@@ -25,6 +28,38 @@ class _RegisterPageState extends State<RegisterPage> {
     displayNameNoCountryCode: "IN",
     e164Key: "",
   );
+
+  void handleSendOtp() async {
+    if (phoneController.text.length == 10) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      String phoneNumber =
+          "+${selectedCountry.phoneCode}${phoneController.text.trim()}";
+
+      bool userExists = await _authService.checkIfUserExists(phoneNumber);
+
+      // This ensures that the widget is still in the tree before proceeding
+      if (!mounted) return;
+
+      if (userExists) {
+        _authService.sendOtp(context: context, phoneNumber: phoneNumber);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Phone number not registered.")),
+        );
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter a valid 10-digit phone number")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +87,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    "Enter your Phone number. We'll send you verification code",
+                    "Enter your Phone number. We'll send you a verification code",
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.black38,
@@ -64,7 +99,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   TextFormField(
                     controller: phoneController,
                     cursorColor: Colors.blue,
+                    keyboardType: TextInputType.phone,
+                    maxLength: 10,
                     decoration: InputDecoration(
+                      counterText: "", // Hides the counter
                       hintText: "Enter the Number",
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -100,22 +138,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                       ),
-                      suffixIcon:
-                          phoneController.text.length > 9
-                              ? Container(
-                                height: 30,
-                                width: 30,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.blue,
-                                ),
-                                child: const Icon(
-                                  Icons.done_sharp,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              )
-                              : null,
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -123,17 +145,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     width: double.infinity,
                     height: 50,
                     child: CustomButton(
-                      text: "Login",
+                      text: _isLoading ? "Checking..." : "Send OTP",
                       onPressed: () {
-                        if (phoneController.text.length == 10) {
-                          sendOTP(
-                            context,
-                            phoneController.text,
-                            selectedCountry.phoneCode,
-                          );
-                        } else {
-                          print("Enter a valid phone number");
-                        }
+                        if (!_isLoading) handleSendOtp();
                       },
                     ),
                   ),

@@ -40,7 +40,11 @@ class App extends StatelessWidget {
       ),
       routes: {
         "/signins": (context) => RegisterPage(),
-        "/otps": (context) => OtpScreen(verificationId: ""),
+        // "/otp":
+        //     (context) => OtpScreen(
+        //       verificationId: "",
+        //       phoneNumber: "",
+        //     ), // Pass actual values in real use
         "/home": (context) => NavigationMenue(),
         "/home2": (context) => NavigationMenuet(),
       },
