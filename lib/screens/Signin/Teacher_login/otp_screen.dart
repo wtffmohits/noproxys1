@@ -152,3 +152,5 @@ class _OtpScreenState extends State<OtpScreent> {
     );
   }
 }
+
+// This code is a Flutter widget for an OTP verification screen. It allows users to enter a 6-digit OTP sent to their phone number and verify it using Firebase authentication. The UI includes a circular image, a title, instructions, an input field for the OTP, and buttons for verification and resending the OTP. The widget handles loading states and provides feedback to the user.

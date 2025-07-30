@@ -160,3 +160,5 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
+
+// This code is a Flutter widget for a registration page that allows users to enter their phone number and send an OTP for verification. It uses Firebase for authentication and Firestore to check if the user exists. The UI includes a country picker for selecting the country code, and it provides feedback on the loading state when sending the OTP. The design is simple and user-friendly, with clear instructions and error handling.

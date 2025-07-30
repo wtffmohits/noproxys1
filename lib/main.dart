@@ -27,3 +27,13 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+
+// now hear we go to devlop the app
+// we will use firebase for authentication and firestore for data storage
+// we will also use provider for state management
+// we will use flutter_bloc for state management
+// we will use dio for network requests
+// we will use get_it for dependency injection
+// we will use shared_preferences for local storage
+// we will use flutter_local_notifications for push notifications
