@@ -12,6 +12,7 @@ class ProfileEditPage extends StatefulWidget {
 class _ProfileEditPageState extends State<ProfileEditPage> {
   Map<String, dynamic>? studentData;
   bool isLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -19,171 +20,222 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     fetchStudentData();
   }
 
+  /// Fetches student data efficiently using a Firestore collectionGroup query.
   Future<void> fetchStudentData() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      setState(() => isLoading = false);
+      print("❗ User not logged in.");
+      setState(() {
+        isLoading = false;
+        errorMessage = "You are not logged in.";
+      });
       return;
     }
 
-    String? phone = user.phoneNumber ?? "";
-    if (!phone.startsWith('+91') && phone.length == 10) {
-      phone = '+91$phone';
+    String? originalPhone = user.phoneNumber;
+    if (originalPhone == null || originalPhone.isEmpty) {
+      print("❗ Phone number is null or empty.");
+      setState(() {
+        isLoading = false;
+        errorMessage = "Phone number not available.";
+      });
+      return;
     }
+
+    // Normalize phone number to ensure it has the +91 prefix for querying
+    String normalizedPhone = originalPhone;
+    if (!normalizedPhone.startsWith('+91') && normalizedPhone.length == 10) {
+      normalizedPhone = '+91$normalizedPhone';
+    }
+
+    print("🔍 Searching for contact: $normalizedPhone");
 
     try {
       final firestore = FirebaseFirestore.instance;
-      final collageDoc =
+
+      // Use a Collection Group query to efficiently search across all 'student-id' subcollections.
+      final studentQuerySnapshot =
           await firestore
-              .collection('Collages')
-              .doc('Thakur Shyamnarayan Degree Collage')
+              .collectionGroup('student-id')
+              .where('Contact', isEqualTo: normalizedPhone)
+              .limit(1)
               .get();
 
-      String collageName = collageDoc.data()?['Collage'] ?? 'Unknown Collage';
-      String collageId = collageDoc.id;
-
-      final collegeRef = firestore
-          .collection('Collages')
-          .doc(collageId)
-          .collection('students');
-
-      final deptSnapshot = await collegeRef.get();
-
-      for (var deptDoc in deptSnapshot.docs) {
-        final deptName = deptDoc.id;
-        final divisionRef = collegeRef.doc(deptName).collection('Devision');
-        final batchSnapshot = await divisionRef.get();
-
-        for (var batchDoc in batchSnapshot.docs) {
-          final batchName = batchDoc.id;
-          final studentIdRef = divisionRef
-              .doc(batchName)
-              .collection('student-id');
-
-          final studentsSnapshot = await studentIdRef.get();
-
-          for (var studentDoc in studentsSnapshot.docs) {
-            final data = studentDoc.data();
-            final studentId = studentDoc.id;
-
-            if (data['Contact'] == phone) {
-              setState(() {
-                studentData = {
-                  ...data,
-                  "Collage": collageName,
-                  "CollageID": collageId,
-                  "Department": deptName,
-                  "Devision": batchName,
-                  "StudentID": studentId,
-                };
-                isLoading = false;
-              });
-              return;
-            }
-          }
-        }
+      if (studentQuerySnapshot.docs.isEmpty) {
+        print("❌ No student found with contact: $normalizedPhone");
+        setState(() {
+          isLoading = false;
+          errorMessage =
+              "Student data could not be found for your contact number.";
+        });
+        return;
       }
 
-      setState(() => isLoading = false);
+      final studentDoc = studentQuerySnapshot.docs.first;
+      final studentDataMap = studentDoc.data();
+      print("✅ Student found: ${studentDataMap['Name']}");
+
+      // Traverse up the document tree to get parent information
+      // Path: Collages/{collageId}/students/{deptId}/Devision/{batchId}/student-id/{studentId}
+      DocumentReference batchRef = studentDoc.reference.parent.parent!;
+      DocumentReference deptRef = batchRef.parent.parent!;
+      DocumentReference collageRef = deptRef.parent.parent!;
+
+      final collageDoc = await collageRef.get();
+      final collageData = collageDoc.data() as Map<String, dynamic>?;
+
+      setState(() {
+        studentData = {
+          ...studentDataMap,
+          "Collage": collageData?['Collage'] ?? collageRef.id,
+          "CollageID": collageRef.id,
+          "Department": deptRef.id,
+          "Devision":
+              batchRef.id, // Correctly gets the division/batch name from its ID
+          "StudentID": studentDoc.id,
+        };
+        isLoading = false;
+      });
     } catch (e) {
-      print("Error: $e");
-      setState(() => isLoading = false);
+      print("🔥 Firestore query error: $e");
+      setState(() {
+        isLoading = false;
+        errorMessage = "An error occurred while fetching data.";
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue,
+      backgroundColor: Colors.grey[200], // Lighter background for the body
       appBar: AppBar(
-        title: const Text('Edit Profile'),
-        backgroundColor: Colors.blue,
-      ),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : studentData == null
-              ? const Center(child: Text("No data found."))
-              : Stack(
-                children: [
-                  Container(height: 200, color: Colors.blue),
-                  SafeArea(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(25, 160, 25, 30),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.all(25),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const CircleAvatar(
-                              radius: 60,
-                              backgroundImage: AssetImage(
-                                'assets/images/mohits.jpeg',
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            buildTextField(
-                              "Full Name",
-                              studentData?["Name"] ?? "N/A",
-                            ),
-                            buildTextField(
-                              "Email",
-                              studentData?["email"] ?? "N/A",
-                            ),
-                            buildTextField(
-                              "Contact",
-                              studentData?["Contact"] ?? "N/A",
-                            ),
-                            const SizedBox(height: 20),
-                            _buildCollegeChip(),
-                            const SizedBox(height: 20),
-                            _buildHeaderSection(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ElevatedButton(
-          onPressed: () {
-            // Save logic here
-          },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 15),
-          ),
-          child: const Text("Save", style: TextStyle(fontSize: 18)),
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(color: Colors.white),
         ),
+        backgroundColor: Colors.blue,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
+      body: buildBody(),
+      // bottomNavigationBar: buildSaveButton(),
     );
   }
 
-  Widget buildTextField(String labelText, String placeholder) {
+  Widget buildBody() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+            errorMessage!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    if (studentData == null) {
+      return const Center(child: Text("No data found."));
+    }
+
+    return Stack(
+      children: [
+        // Blue header background
+        Container(height: 120, color: Colors.blue),
+        SafeArea(
+          child: SingleChildScrollView(
+            // Start scrolling content below the blue header
+            padding: const EdgeInsets.only(
+              top: 60,
+              left: 16,
+              right: 16,
+              bottom: 30,
+            ),
+            child: Column(
+              children: [
+                const CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.white,
+                  child: CircleAvatar(
+                    radius: 55,
+                    backgroundImage: AssetImage('assets/images/mohits.jpeg'),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.15),
+                        spreadRadius: 2,
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      buildTextField("Full Name", studentData?["Name"]),
+                      buildTextField("Email", studentData?["email"]),
+                      buildTextField("Contact", studentData?["Contact"]),
+                      const SizedBox(height: 20),
+                      _buildCollegeChip(),
+                      const Divider(height: 30),
+                      _buildHeaderSection(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildTextField(String labelText, String? placeholder) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: TextField(
-        readOnly: true,
+        readOnly: true, // Fields are not editable in this view
+        controller: TextEditingController(text: placeholder ?? 'N/A'),
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
-            vertical: 10,
-            horizontal: 10,
+            vertical: 15,
+            horizontal: 15,
           ),
           labelText: labelText,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          hintText: placeholder,
+          labelStyle: const TextStyle(
+            color: Colors.blue,
+            fontWeight: FontWeight.bold,
+          ),
           hintStyle: const TextStyle(
             color: Colors.black,
             fontSize: 16,
             fontWeight: FontWeight.w400,
           ),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
         ),
       ),
     );
@@ -191,22 +243,28 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   Widget _buildCollegeChip() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+      width: double.infinity, // पूरे उपलब्ध width को लेगा
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
       decoration: BoxDecoration(
-        color: Colors.blueGrey,
+        color: Colors.blue.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "College: ",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          Icon(Icons.school, color: Colors.blue.shade800, size: 20),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               studentData?["Collage"] ?? "Not Available",
-              style: const TextStyle(color: Colors.white),
-              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.blue.shade900,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+              softWrap: true,
+              maxLines: 2,
+              overflow: TextOverflow.visible,
             ),
           ),
         ],
@@ -218,41 +276,99 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailRow('Course', studentData?["Department"] ?? "N/A"),
-        _buildDetailRow('Roll No.', studentData?["Roll-no"] ?? "N/A"),
-        _buildDetailRow('Year', studentData?["Year"] ?? "N/A"),
-        _buildDetailRow('Semester', studentData?["Sem"] ?? "N/A"),
-        _buildDetailRow('Division', studentData?["Devision"] ?? "N/A"),
+        const Text(
+          "Academic Details",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        _buildDetailRow('Course', studentData?["Department"]),
+        // FIX: Convert potential integer values to String to prevent runtime error.
+        _buildDetailRow('Roll No.', studentData?["Roll-no"]?.toString()),
+        _buildDetailRow('Year', studentData?["Year"]?.toString()),
+        _buildDetailRow('Semester', studentData?["Sem"]?.toString()),
+        _buildDetailRow('Division', studentData?["Devision"]),
+        // _buildDetailRow('Subjects', studentData?["Subjects"]?.toString()),
+        const SizedBox(height: 10),
         _buildSubjectDetailsSection(),
       ],
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String? value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            '$label : ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            '$label:',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
           ),
-          Text(value),
+          Text(value ?? 'N/A', style: const TextStyle(fontSize: 15)),
         ],
       ),
     );
   }
 
   Widget _buildSubjectDetailsSection() {
-    List<dynamic> subjectsList = studentData?["Subject"] ?? [];
+    // Ensure that subjectsList is treated as a List<dynamic>
+    final dynamic Subjects = studentData?["Subjects"];
+    if (Subjects == null || Subjects is! List || Subjects.isEmpty) {
+      return const SizedBox.shrink(); // Don't show anything if no subjects
+    }
+
+    final List<dynamic> subjectsList = Subjects;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Subjects:', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Divider(height: 20),
+        Text(
+          'Subjects',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade600,
+          ),
+        ),
         const SizedBox(height: 5),
-        ...subjectsList.map((subject) => Text('- $subject')).toList(),
+        ...subjectsList.map((Subject) {
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text('•  $Subject', style: const TextStyle(fontSize: 15)),
+          );
+        }).toList(),
       ],
     );
   }
+
+  // Widget buildSaveButton() {
+  //   return Padding(
+  //     padding: const EdgeInsets.all(16),
+  //     child: ElevatedButton(
+  //       onPressed: () {
+  //         // TODO: Implement save logic here.
+  //         // This will involve creating controllers for each text field,
+  //         // allowing them to be editable, and then on save,
+  //         // updating the document in Firestore.
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(
+  //             content: Text('Save functionality not implemented yet.'),
+  //           ),
+  //         );
+  //       },
+  //       style: ElevatedButton.styleFrom(
+  //         backgroundColor: Colors.blue,
+  //         foregroundColor: Colors.white,
+  //         padding: const EdgeInsets.symmetric(vertical: 15),
+  //         shape: RoundedRectangleBorder(
+  //           borderRadius: BorderRadius.circular(10),
+  //         ),
+  //       ),
+  //       child: const Text("Save Changes", style: TextStyle(fontSize: 18)),
+  //     ),
+  //   );
+  // }
 }

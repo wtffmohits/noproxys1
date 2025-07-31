@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:noproxys/Authantication/firebase_auth/firebase_auth_method.dart';
+import 'package:noproxys/Authantication/firebase_auth/firebase_tech_login.dart';
 import 'package:noproxys/widgets/Themes/buttons.dart';
 import 'package:pinput/pinput.dart';
 
@@ -18,7 +18,7 @@ class OtpScreent extends StatefulWidget {
 }
 
 class _OtpScreenState extends State<OtpScreent> {
-  final AuthService _authService = AuthService();
+  final AuthServiceTeacher _authService = AuthServiceTeacher();
   String? otpCode;
   bool _isLoading = false;
 
@@ -32,17 +32,15 @@ class _OtpScreenState extends State<OtpScreent> {
         verificationId: widget.verificationId,
         smsCode: otpCode!,
       );
-      // Only set loading to false if verification fails (handled in AuthService)
-      // On success, it will navigate away.
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Enter 6-digit OTP")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter the 6-digit OTP.")),
+      );
     }
   }
 
@@ -79,7 +77,7 @@ class _OtpScreenState extends State<OtpScreent> {
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    "Enter your OTP to verify your phone number",
+                    "Enter the OTP to verify your phone number",
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.black38,
@@ -106,10 +104,7 @@ class _OtpScreenState extends State<OtpScreent> {
                     onChanged: (value) {
                       otpCode = value;
                     },
-                    // ** FIX: onSubmitted now calls the correct handler **
-                    onSubmitted: (value) {
-                      handleVerifyOtp();
-                    },
+                    onSubmitted: (value) => handleVerifyOtp(),
                   ),
                   const SizedBox(height: 25),
                   SizedBox(
@@ -122,7 +117,7 @@ class _OtpScreenState extends State<OtpScreent> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 20), // <-- Added missing SizedBox
+                  const SizedBox(height: 20),
                   const Text(
                     "Didn't receive any code?",
                     style: TextStyle(
@@ -152,5 +147,3 @@ class _OtpScreenState extends State<OtpScreent> {
     );
   }
 }
-
-// This code is a Flutter widget for an OTP verification screen. It allows users to enter a 6-digit OTP sent to their phone number and verify it using Firebase authentication. The UI includes a circular image, a title, instructions, an input field for the OTP, and buttons for verification and resending the OTP. The widget handles loading states and provides feedback to the user.

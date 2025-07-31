@@ -1,7 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:noproxys/Authantication/firebase_auth/firebase_auth_method.dart';
+import 'package:noproxys/Authantication/firebase_auth/firebase_tech_login.dart';
 import 'package:noproxys/widgets/Themes/buttons.dart';
 
 class RegisterPages extends StatefulWidget {
@@ -13,7 +12,7 @@ class RegisterPages extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPages> {
   final TextEditingController phoneController = TextEditingController();
-  final AuthService _authService = AuthService();
+  final AuthServiceTeacher _authService = AuthServiceTeacher();
   bool _isLoading = false;
 
   Country selectedCountry = Country(
@@ -38,16 +37,17 @@ class _RegisterPageState extends State<RegisterPages> {
       String phoneNumber =
           "+${selectedCountry.phoneCode}${phoneController.text.trim()}";
 
-      bool userExists = await _authService.checkIfUserExists(phoneNumber);
+      bool teacherExists = await _authService.checkIfTeacherExists(phoneNumber);
 
-      // This ensures that the widget is still in the tree before proceeding
       if (!mounted) return;
 
-      if (userExists) {
+      if (teacherExists) {
         _authService.sendOtp(context: context, phoneNumber: phoneNumber);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Phone number not registered.")),
+          const SnackBar(
+            content: Text("Teacher not registered with this number."),
+          ),
         );
       }
 
@@ -56,7 +56,9 @@ class _RegisterPageState extends State<RegisterPages> {
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter a valid 10-digit phone number")),
+        const SnackBar(
+          content: Text("Please enter a valid 10-digit phone number."),
+        ),
       );
     }
   }
@@ -82,12 +84,12 @@ class _RegisterPageState extends State<RegisterPages> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    "Registration",
+                    "Teacher Login",
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    "Enter your Phone number. We'll send you a verification code",
+                    "Enter your phone number to receive an OTP",
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.black38,
@@ -102,8 +104,8 @@ class _RegisterPageState extends State<RegisterPages> {
                     keyboardType: TextInputType.phone,
                     maxLength: 10,
                     decoration: InputDecoration(
-                      counterText: "", // Hides the counter
-                      hintText: "Enter the Number",
+                      counterText: "",
+                      hintText: "Enter your number",
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: Colors.black12),
@@ -160,5 +162,3 @@ class _RegisterPageState extends State<RegisterPages> {
     );
   }
 }
-
-// This code is a Flutter widget for a registration page that allows users to enter their phone number and send an OTP for verification. It uses Firebase for authentication and Firestore to check if the user exists. The UI includes a country picker for selecting the country code, and it provides feedback on the loading state when sending the OTP. The design is simple and user-friendly, with clear instructions and error handling.
