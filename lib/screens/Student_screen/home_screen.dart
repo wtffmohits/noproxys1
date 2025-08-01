@@ -10,6 +10,7 @@ import 'package:noproxys/components/controller/student_lectures_controller.dart'
 import 'package:noproxys/model/task.dart';
 import 'package:noproxys/screens/Student_screen/lecture_qr_scan_screen.dart';
 import 'package:noproxys/widgets/Appbar/Appbar.dart';
+import 'package:swipeable_button_view/swipeable_button_view.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,6 +24,7 @@ class _HomePageState extends State<HomePage> {
     StudentLecturesController(),
   );
   DateTime _selectedDate = DateTime.now();
+  bool _isSwiped = false;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +69,27 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 20),
                     const Checkins(),
                     const SizedBox(height: 20),
+                    SwipeableButtonView(
+                      onFinish: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LectureQrScanScreen(),
+                          ),
+                        );
+                      },
+                      onWaitingProcess: () {
+                        Future.delayed(Duration(seconds: 2), () {
+                          setState(() {
+                            _isSwiped = true;
+                          });
+                        });
+                      },
+                      activeColor: Colors.blueAccent,
+                      buttonWidget: Container(),
+                      buttonText: "Swipe to check IN",
+                    ),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
@@ -82,6 +105,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 20),
                     UpcomingLectures(),
                   ],
