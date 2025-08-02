@@ -114,3 +114,6 @@ class QrScanScreen extends StatelessWidget {
     );
   }
 }
+
+
+// esme aabhi bhi QR code scan wala kaam nahi hua hai databse se connect nahi hua hai

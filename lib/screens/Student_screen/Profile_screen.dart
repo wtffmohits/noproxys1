@@ -96,3 +96,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+
+
+// edhar ka Ui perfect hai koi changes nahi chahiye

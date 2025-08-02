@@ -94,3 +94,7 @@ class TeacherProfileScreen extends StatelessWidget {
     );
   }
 }
+
+
+// teacher ka profile screen aabhi main check nahi kiya hai
+// agar kuchh changes chahiye to mujhe bata dena

@@ -148,3 +148,5 @@ class _HomePageState extends State<HomePageT> {
     });
   }
 }
+
+// esme bhi wo slider dalna hai
