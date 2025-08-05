@@ -23,6 +23,7 @@ class Task {
     required this.repeat,
     required this.color,
     required this.scheduleCode,
+    required String batch,
   });
 
   // Renamed from formJson to fromJson for consistency.

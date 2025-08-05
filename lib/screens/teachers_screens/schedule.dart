@@ -22,6 +22,9 @@ class _SchedulingState extends State<Scheduling> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
+  final List<String> batches = ['Batch-A', 'Batch-B', 'Batch-C'];
+  String? selectedBatch;
+
   DateTime selectedDate = DateTime.now();
   String startTime = DateFormat("hh:mm a").format(DateTime.now()).toString();
   String endTime = '9:30 PM';
@@ -33,124 +36,160 @@ class _SchedulingState extends State<Scheduling> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       backgroundColor: Colors.blue,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         title: const Text('Schedule'),
       ),
-      body: SingleChildScrollView(
-        child: SafeArea(
-          child: Container(
-            height:
-                size.height - kToolbarHeight - bottomPadding, // Adjust height
-            width: size.width,
-            decoration: BoxDecoration(
-              color: Color.fromRGBO(245, 245, 245, 1.000),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(25),
-                topRight: Radius.circular(25),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: bottomPadding),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Color.fromRGBO(245, 245, 245, 1),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(25),
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Text(
+                            "Add Schedule",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 15),
+                        MyInputField(
+                          hint: "Enter your Title",
+                          title: "Title",
+                          controller: _titleController,
+                        ),
+                        MyInputField(
+                          hint: "Enter your Note",
+                          title: "Note",
+                          controller: _noteController,
+                        ),
+                        MyInputField(
+                          hint: DateFormat.yMd().format(selectedDate),
+                          title: "Date",
+                          widget: IconButton(
+                            icon: Icon(Icons.calendar_today),
+                            onPressed: _getDateFromUser,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: MyInputField(
+                                hint: startTime,
+                                title: "Start Time",
+                                widget: IconButton(
+                                  icon: Icon(Icons.access_time),
+                                  onPressed: _getStartTimeFromUser,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: MyInputField(
+                                hint: endTime,
+                                title: "End Time",
+                                widget: IconButton(
+                                  icon: Icon(Icons.access_time),
+                                  onPressed: _getEndTimeFromUser,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        MyInputField(
+                          hint:
+                              reminderMinutes != null
+                                  ? "$reminderMinutes minutes early"
+                                  : "Select Reminder",
+                          title: "Reminder",
+                          widget: DropdownButton<int>(
+                            underline: Container(),
+                            icon: Icon(Icons.keyboard_arrow_down),
+                            value: reminderMinutes,
+                            items:
+                                [5, 10, 15, 20]
+                                    .map(
+                                      (min) => DropdownMenuItem(
+                                        value: min,
+                                        child: Text("$min minutes early"),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (int? newValue) {
+                              setState(() {
+                                reminderMinutes = newValue;
+                              });
+                            },
+                          ),
+                        ),
+                        MyInputField(
+                          hint: selectedBatch ?? "Select Batch",
+                          title: "Batch",
+                          widget: DropdownButton<String>(
+                            underline: Container(),
+                            icon: Icon(Icons.keyboard_arrow_down),
+                            value: selectedBatch,
+                            items:
+                                batches
+                                    .map(
+                                      (batch) => DropdownMenuItem(
+                                        value: batch,
+                                        child: Text(batch),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (String? newBatch) {
+                              setState(() {
+                                selectedBatch = newBatch;
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _colorSelectedIndex(),
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: BlueButton(
+                                  lable: "Schedule",
+                                  onTap: _validateAndAddTask,
+                                  label: '',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-            padding: EdgeInsets.only(left: 20, right: 20, bottom: 20),
-            child: Column(
-              children: [
-                SizedBox(height: 15),
-                Text(
-                  "Add Schedule",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                MyInputField(
-                  hint: "Enter your Title",
-                  title: "Title",
-                  controller: _titleController,
-                ),
-                MyInputField(
-                  hint: "Enter your Note",
-                  title: "Note",
-                  controller: _noteController,
-                ),
-                MyInputField(
-                  hint: DateFormat.yMd().format(selectedDate),
-                  title: "Date",
-                  widget: IconButton(
-                    icon: Icon(Icons.calendar_today),
-                    onPressed: _getDateFromUser,
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: MyInputField(
-                        hint: startTime,
-                        title: "Start Time",
-                        widget: IconButton(
-                          icon: Icon(Icons.access_time),
-                          onPressed: _getStartTimeFromUser,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: MyInputField(
-                        hint: endTime,
-                        title: "End Time",
-                        widget: IconButton(
-                          icon: Icon(Icons.access_time),
-                          onPressed: _getEndTimeFromUser,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                MyInputField(
-                  hint:
-                      reminderMinutes != null
-                          ? "$reminderMinutes minutes early"
-                          : "Select Reminder",
-                  title: "Reminder",
-                  widget: DropdownButton<int>(
-                    icon: Icon(Icons.keyboard_arrow_down),
-                    items: [
-                      DropdownMenuItem(
-                        value: 5,
-                        child: Text("5 minutes early"),
-                      ),
-                      DropdownMenuItem(
-                        value: 10,
-                        child: Text("10 minutes early"),
-                      ),
-                      DropdownMenuItem(
-                        value: 15,
-                        child: Text("15 minutes early"),
-                      ),
-                      DropdownMenuItem(
-                        value: 20,
-                        child: Text("20 minutes early"),
-                      ),
-                    ],
-                    onChanged: (int? newValue) {
-                      setState(() {
-                        reminderMinutes = newValue;
-                      });
-                    },
-                  ),
-                ),
-
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _colorSelectedIndex(),
-                    BlueButton(lable: "Schedule", onTap: _validateAndAddTask),
-                  ],
-                ),
-                SizedBox(height: 10),
-              ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -234,6 +273,7 @@ class _SchedulingState extends State<Scheduling> {
       color: selectedColor,
       isCompleted: 0,
       scheduleCode: scheduleCode,
+      batch: '',
     );
 
     // Save task in Firestore

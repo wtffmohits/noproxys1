@@ -23,7 +23,7 @@ class Proeditwidgetst extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ProfileEditPaget(),
+                  builder: (context) => const TeacherProfileEditPage(),
                 ),
               );
             },

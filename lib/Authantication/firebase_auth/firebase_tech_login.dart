@@ -8,14 +8,14 @@ class AuthServiceTeacher {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// 🔍 Check if a teacher exists by phone number using a collectionGroup query
+  /// 🔍 Check if teacher exists by phone number in correct Firestore path
   Future<bool> checkIfTeacherExists(String phoneNumber) async {
     try {
-      final staffQuery = _firestore
+      // According to your provided database structure, teacher data is inside collectionGroup 'staff-id'
+      final Query staffQuery = _firestore
           .collectionGroup('staff-id')
           .where('Contact', isEqualTo: phoneNumber);
-
-      final staffResult = await staffQuery.get();
+      final QuerySnapshot staffResult = await staffQuery.get();
 
       return staffResult.docs.isNotEmpty;
     } catch (e) {
@@ -24,7 +24,7 @@ class AuthServiceTeacher {
     }
   }
 
-  /// 📲 Send OTP to the teacher's phone number
+  /// 📲 Send OTP using Firebase Authentication
   void sendOtp({
     required BuildContext context,
     required String phoneNumber,
@@ -33,40 +33,36 @@ class AuthServiceTeacher {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
-
         verificationCompleted: (PhoneAuthCredential credential) async {
           await _auth.signInWithCredential(credential);
           if (!context.mounted) return;
           await Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => NavigationMenuet()),
+            MaterialPageRoute(builder: (_) => NavigationMenuet()),
             (route) => false,
           );
         },
-
         verificationFailed: (FirebaseAuthException e) {
           if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Verification Failed: ${e.message}")),
           );
         },
-
         codeSent: (String verificationId, int? resendToken) async {
           if (!context.mounted) return;
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder:
-                  (context) => OtpScreent(
+                  (_) => OtpScreent(
                     verificationId: verificationId,
                     phoneNumber: phoneNumber,
                   ),
             ),
           );
         },
-
         codeAutoRetrievalTimeout: (String verificationId) {
-          // Auto-retrieval timed out.
+          // Auto-retrieval timed out
         },
       );
     } catch (e) {
@@ -77,7 +73,7 @@ class AuthServiceTeacher {
     }
   }
 
-  /// ✅ Verify the OTP and sign in the teacher
+  /// ✅ Verify OTP and sign in teacher
   void verifyOtp({
     required BuildContext context,
     required String verificationId,
@@ -88,13 +84,11 @@ class AuthServiceTeacher {
         verificationId: verificationId,
         smsCode: smsCode,
       );
-
       await _auth.signInWithCredential(credential);
-
       if (!context.mounted) return;
       await Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => NavigationMenuet()),
+        MaterialPageRoute(builder: (_) => NavigationMenuet()),
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {

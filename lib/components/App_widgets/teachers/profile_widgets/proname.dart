@@ -10,94 +10,95 @@ class Pronamet extends StatefulWidget {
 }
 
 class _PronameState extends State<Pronamet> {
-  Map<String, dynamic>? teacherData;
+  Map<String, dynamic>? staffData; // Correct variable name
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchTeacherData();
+    fetchStaffData();
   }
 
-  Future<void> fetchTeacherData() async {
+  Future<void> fetchStaffData() async {
     User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      String? originalPhone = user.phoneNumber;
-      print("📱 FirebaseAuth phone: $originalPhone");
+    if (user == null) {
+      print("❗User not logged in.");
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
 
-      String normalizedPhone = originalPhone ?? "";
-      if (!normalizedPhone.startsWith('+91') && normalizedPhone.length == 10) {
-        normalizedPhone = '+91$normalizedPhone';
-      }
+    String? originalPhone = user.phoneNumber;
+    print("📱 FirebaseAuth phone: $originalPhone");
 
-      print("🔍 Searching teacher in all colleges for: $normalizedPhone");
+    if (originalPhone == null || originalPhone.isEmpty) {
+      print("❗Phone number is null or empty.");
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
 
-      try {
-        final firestore = FirebaseFirestore.instance;
+    // Normalize phone number to include +91 if missing
+    String normalizedPhone = originalPhone;
+    if (!normalizedPhone.startsWith('+91') && normalizedPhone.length == 10) {
+      normalizedPhone = '+91$normalizedPhone';
+    }
 
-        // Get all colleges
-        final collegesSnapshot = await firestore.collection('Collages').get();
+    print("🔍 Searching for staff contact: $normalizedPhone");
 
-        for (var collegeDoc in collegesSnapshot.docs) {
-          final collegeName = collegeDoc.id;
-          print("🏫 Checking College: $collegeName");
+    try {
+      final firestore = FirebaseFirestore.instance;
 
-          final teachersRootRef = firestore
-              .collection('Collages')
-              .doc(collegeName)
-              .collection('teachers');
+      // Collection group query on 'staff-id' collection filtering by Contact field
+      final staffQuerySnapshot =
+          await firestore
+              .collectionGroup('staff-id')
+              .where('Contact', isEqualTo: normalizedPhone)
+              .limit(1) // Assume unique phone number
+              .get();
 
-          final designationSnapshot = await teachersRootRef.get();
-
-          for (var designationDoc in designationSnapshot.docs) {
-            final designation = designationDoc.id;
-            print("🧑‍🏫 Checking Designation: $designation");
-
-            final teacherIdRef = teachersRootRef
-                .doc(designation)
-                .collection('teacher-id');
-
-            final teacherSnapshot = await teacherIdRef.get();
-
-            for (var teacherDoc in teacherSnapshot.docs) {
-              final data = teacherDoc.data();
-              final teacherId = teacherDoc.id;
-
-              print(
-                "👨‍🏫 Checking Teacher ID: $teacherId => ${data['Contact']}",
-              );
-
-              if (data['Contact'] == normalizedPhone) {
-                setState(() {
-                  teacherData = {
-                    ...data,
-                    "Designation": designation,
-                    "TeacherID": teacherId,
-                    "College": collegeName,
-                  };
-                  isLoading = false;
-                });
-
-                print("✅ Found Teacher: ${data['Name']}");
-                return;
-              }
-            }
-          }
-        }
-
-        print("❌ No teacher found for: $normalizedPhone");
+      if (staffQuerySnapshot.docs.isEmpty) {
+        print("❌ No staff found with contact: $normalizedPhone");
         setState(() {
           isLoading = false;
         });
-      } catch (e) {
-        print("🔥 Firestore error: $e");
-        setState(() {
-          isLoading = false;
-        });
+        return;
       }
-    } else {
-      print("❗ User not logged in.");
+
+      // Staff document found
+      final staffDoc = staffQuerySnapshot.docs.first;
+      final staffDataMap = staffDoc.data();
+      print("✅ Staff found: ${staffDataMap['Name']}");
+
+      // Get the hierarchy: Collages/{collageId}/Departments/{departmentId}/Staff/{designation}/staff-id/{staffId}
+      DocumentReference staffIdRef = staffDoc.reference;
+      DocumentReference designationRef =
+          staffIdRef.parent.parent!; // Staff/{designation}
+      DocumentReference departmentRef =
+          designationRef.parent.parent!; // Departments/{departmentId}
+      DocumentReference collageRef =
+          departmentRef.parent.parent!; // Collages/{collageId}
+
+      // Fetch college document data for its name if available
+      final collageDoc = await collageRef.get();
+      final collageData = collageDoc.data() as Map<String, dynamic>?;
+
+      setState(() {
+        staffData = {
+          ...staffDataMap,
+          "Collage": collageData?['Collage'] ?? collageRef.id,
+          "CollageID": collageRef.id,
+          "Department": departmentRef.id,
+          "Designation": designationRef.id,
+          "StaffID": staffDoc.id,
+        };
+        isLoading = false;
+      });
+    } catch (e) {
+      print("🔥 Firestore query error: $e");
       setState(() {
         isLoading = false;
       });
@@ -110,8 +111,8 @@ class _PronameState extends State<Pronamet> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (teacherData == null) {
-      return const Center(child: Text("No data found"));
+    if (staffData == null) {
+      return const Center(child: Text("Teacher data not found."));
     }
 
     return Container(
@@ -119,32 +120,44 @@ class _PronameState extends State<Pronamet> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           CircleAvatar(
             radius: _calculateAvatarRadius(context),
-            backgroundImage: const AssetImage("assets/images/mohits.jpeg"),
+            // backgroundImage: staffData?["photoUrl"] != null ? NetworkImage(staffData!["photoUrl"]) : null, // Uncomment if photo available
+            child: const Icon(Icons.person, size: 40), // Fallback icon
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Name: ${teacherData?["Name"]}",
+                  "${staffData?["Name"] ?? 'N/A'}",
                   style: TextStyle(
                     fontSize: _calculateFontSize(context, 20),
                     fontWeight: FontWeight.bold,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  "${teacherData?["College"]}",
+                  "${staffData?["Collage"] ?? 'Unknown College'}",
                   style: TextStyle(
-                    fontSize: _calculateFontSize(context, 18),
-                    fontWeight: FontWeight.bold,
+                    fontSize: _calculateFontSize(context, 16),
+                    color: Colors.grey[600],
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -156,12 +169,17 @@ class _PronameState extends State<Pronamet> {
 
   double _calculateAvatarRadius(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    return screenWidth * 0.1;
+    return (screenWidth * 0.1).clamp(30.0, 50.0);
   }
 
   double _calculateFontSize(BuildContext context, double baseFontSize) {
-    final double screenRatio =
-        MediaQuery.of(context).size.width / MediaQuery.of(context).size.height;
-    return screenRatio > 1.2 ? baseFontSize : baseFontSize * 0.8;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 600) {
+      return baseFontSize;
+    } else if (screenWidth > 400) {
+      return baseFontSize * 0.9;
+    } else {
+      return baseFontSize * 0.8;
+    }
   }
 }

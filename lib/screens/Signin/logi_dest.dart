@@ -42,6 +42,7 @@ class LogiDest extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
+
                       Flexible(
                         child: _buildLoginButton(
                           context,

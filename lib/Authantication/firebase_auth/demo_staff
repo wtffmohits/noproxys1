@@ -1,0 +1,34 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void createDemoTeacher() async {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  // Full path (you can customize department, designation, etc.)
+  final String college = "Thakur Shyamnarayan Degree Collage";
+  final String department = "BSC-IT";
+  final String designation = "HOD";
+  final String teacherId = "1";
+
+  final DocumentReference<Map<String, dynamic>> docRef = firestore
+      .collection('Collages')
+      .doc(college)
+      .collection('Departments')
+      .doc(department)
+      .collection('Staff')
+      .doc(designation)
+      .collection('staff-id')
+      .doc(teacherId);
+
+  try {
+    await docRef.set({
+      'Name': 'Riya Singh',
+      'Contact': '+918234567891',
+      'email': 'zxcbvm@gmail.com',
+      'staff-id': 48422,
+    });
+
+    print("✅ Demo teacher created successfully.");
+  } catch (e) {
+    print("❌ Failed to create demo teacher: $e");
+  }
+}

@@ -12,6 +12,7 @@ class BlueButton extends StatelessWidget {
     required this.lable,
     this.onPressed,
     this.onTap,
+    required String label,
   });
 
   @override
