@@ -73,7 +73,7 @@ class _SchedulingState extends State<Scheduling> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 15),
+                        SizedBox(height: 10),
                         MyInputField(
                           hint: "Enter your Title",
                           title: "Title",
