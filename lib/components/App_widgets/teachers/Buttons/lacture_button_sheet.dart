@@ -1,6 +1,8 @@
+// LectureOptionsTeacher.dart
+
 import 'package:flutter/material.dart';
 
-void showLectureOptionsT(
+void showLectureOptionsTeacher(
   BuildContext context,
   String scheduleCode,
   VoidCallback onComplete,

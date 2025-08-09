@@ -1,13 +1,9 @@
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
-import 'package:noproxys/components/Buttons/button.dart';
-import 'package:noproxys/components/controller/task_controller.dart';
-import 'package:noproxys/model/task.dart';
-import 'package:noproxys/widgets/teacher/input_field.dart';
-// Import Firestore Helper
+import 'package:noproxys/components/App_widgets/teachers/Buttons/button.dart'; // Keep your BlueButton import
 
 class Scheduling extends StatefulWidget {
   const Scheduling({super.key});
@@ -17,293 +13,288 @@ class Scheduling extends StatefulWidget {
 }
 
 class _SchedulingState extends State<Scheduling> {
-  final databaseReference = FirebaseDatabase.instance.ref("StoreData");
-  final TaskController taskController = Get.put(TaskController());
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  final List<String> batches = ['Batch-A', 'Batch-B', 'Batch-C'];
+  final String collegeName = 'Thakur Shyamnarayan Degree Collage';
+  final String departmentName = 'BSC-IT';
+
+  String? selectedYearLevel; // FY/SY/TY
   String? selectedBatch;
+  String? selectedSubject;
+
+  List<String> yearLevels = ['FY', 'SY', 'TY'];
+  List<String> batches = [];
+  List<String> subjects = [];
 
   DateTime selectedDate = DateTime.now();
-  String startTime = DateFormat("hh:mm a").format(DateTime.now()).toString();
+  String startTime = DateFormat("hh:mm a").format(DateTime.now());
   String endTime = '9:30 PM';
+
   int? reminderMinutes = 5;
   int selectedColor = 0;
   String selectedRepeat = 'None';
 
+  // AcademicYear fetching & mapping
+  Future<List<String>> _fetchAcademicYearsSorted() async {
+    final snap =
+        await FirebaseFirestore.instance
+            .collection('Collages')
+            .doc(collegeName)
+            .collection('Departments')
+            .doc(departmentName)
+            .collection('AcademicYear')
+            .get();
+    final years = snap.docs.map((doc) => doc.id).toList();
+    years.sort(); // earliest to latest (alphabetic)
+    return years;
+  }
+
+  Future<void> fetchBatchesAndSubjects(String yearLevel) async {
+    final years = await _fetchAcademicYearsSorted();
+    String? academicYear;
+
+    if (yearLevel == "FY" && years.isNotEmpty) {
+      academicYear = years.last;
+    } else if (yearLevel == "SY" && years.length > 1) {
+      academicYear = years[years.length - 2];
+    } else if (yearLevel == "TY" && years.length > 2) {
+      academicYear = years[years.length - 3];
+    }
+
+    if (academicYear == null) {
+      setState(() {
+        batches = [];
+        subjects = [];
+      });
+      return;
+    }
+
+    // Fetch Batches
+    final batchSnap =
+        await FirebaseFirestore.instance
+            .collection('Collages')
+            .doc(collegeName)
+            .collection('Departments')
+            .doc(departmentName)
+            .collection('AcademicYear')
+            .doc(academicYear)
+            .collection(yearLevel)
+            .get();
+
+    setState(() {
+      batches =
+          batchSnap.docs
+              .where((doc) => doc.id != 'Semesters')
+              .map((doc) => doc.id)
+              .toList();
+      selectedBatch = null;
+      subjects = [];
+      selectedSubject = null;
+    });
+
+    // Fetch default Semester based on yearLevel
+    String defaultSemester =
+        yearLevel == "FY"
+            ? "Semester-1"
+            : yearLevel == "SY"
+            ? "Semester-3"
+            : "Semester-5";
+
+    final semesterSnap =
+        await FirebaseFirestore.instance
+            .collection('Collages')
+            .doc(collegeName)
+            .collection('Departments')
+            .doc(departmentName)
+            .collection('AcademicYear')
+            .doc(academicYear)
+            .collection(yearLevel)
+            .doc(defaultSemester)
+            .get();
+
+    if (semesterSnap.exists) {
+      setState(() {
+        subjects = List<String>.from(semesterSnap['subjects'] ?? []);
+      });
+    }
+  }
+
+  // ---- UI ----
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: Colors.blue,
-      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.blue,
         title: const Text('Schedule'),
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: bottomPadding),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Color.fromRGBO(245, 245, 245, 1),
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(25),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          child: Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Color.fromRGBO(245, 245, 245, 1),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Text(
+                  "Add Schedule",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+
+                _buildInputField("Title", "Enter your Title", _titleController),
+                _buildInputField("Note", "Enter your Note", _noteController),
+                _buildInputField(
+                  "Date",
+                  DateFormat.yMd().format(selectedDate),
+                  null,
+                  icon: Icons.calendar_today,
+                  onPressed: _pickDate,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildInputField(
+                        "Start Time",
+                        startTime,
+                        null,
+                        icon: Icons.access_time,
+                        onPressed: _pickStartTime,
                       ),
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Text(
-                            "Add Schedule",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        MyInputField(
-                          hint: "Enter your Title",
-                          title: "Title",
-                          controller: _titleController,
-                        ),
-                        MyInputField(
-                          hint: "Enter your Note",
-                          title: "Note",
-                          controller: _noteController,
-                        ),
-                        MyInputField(
-                          hint: DateFormat.yMd().format(selectedDate),
-                          title: "Date",
-                          widget: IconButton(
-                            icon: Icon(Icons.calendar_today),
-                            onPressed: _getDateFromUser,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: MyInputField(
-                                hint: startTime,
-                                title: "Start Time",
-                                widget: IconButton(
-                                  icon: Icon(Icons.access_time),
-                                  onPressed: _getStartTimeFromUser,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: MyInputField(
-                                hint: endTime,
-                                title: "End Time",
-                                widget: IconButton(
-                                  icon: Icon(Icons.access_time),
-                                  onPressed: _getEndTimeFromUser,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        MyInputField(
-                          hint:
-                              reminderMinutes != null
-                                  ? "$reminderMinutes minutes early"
-                                  : "Select Reminder",
-                          title: "Reminder",
-                          widget: DropdownButton<int>(
-                            underline: Container(),
-                            icon: Icon(Icons.keyboard_arrow_down),
-                            value: reminderMinutes,
-                            items:
-                                [5, 10, 15, 20]
-                                    .map(
-                                      (min) => DropdownMenuItem(
-                                        value: min,
-                                        child: Text("$min minutes early"),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (int? newValue) {
-                              setState(() {
-                                reminderMinutes = newValue;
-                              });
-                            },
-                          ),
-                        ),
-                        MyInputField(
-                          hint: selectedBatch ?? "Select Batch",
-                          title: "Batch",
-                          widget: DropdownButton<String>(
-                            underline: Container(),
-                            icon: Icon(Icons.keyboard_arrow_down),
-                            value: selectedBatch,
-                            items:
-                                batches
-                                    .map(
-                                      (batch) => DropdownMenuItem(
-                                        value: batch,
-                                        child: Text(batch),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (String? newBatch) {
-                              setState(() {
-                                selectedBatch = newBatch;
-                              });
-                            },
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _colorSelectedIndex(),
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: BlueButton(
-                                  lable: "Schedule",
-                                  onTap: _validateAndAddTask,
-                                  label: '',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildInputField(
+                        "End Time",
+                        endTime,
+                        null,
+                        icon: Icons.access_time,
+                        onPressed: _pickEndTime,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            );
-          },
+                // Year Level Dropdown (mandatory)
+                _buildDropdown("Year Level", selectedYearLevel, yearLevels, (
+                  val,
+                ) {
+                  setState(() => selectedYearLevel = val);
+                  if (val != null) fetchBatchesAndSubjects(val);
+                }),
+                _buildDropdown("Batch", selectedBatch, batches, (val) {
+                  setState(() => selectedBatch = val);
+                }),
+                _buildDropdown("Subject", selectedSubject, subjects, (val) {
+                  setState(() => selectedSubject = val);
+                }),
+
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _colorSelectedIndex(),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: BlueButton(
+                          lable: "Schedule",
+                          onTap: _validateAndAddTask,
+                          label: '', // User your default label if needed
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  void _validateAndAddTask() {
-    if (_titleController.text.isEmpty || _noteController.text.isEmpty) {
-      Get.snackbar(
-        "Error",
-        "Please fill all the fields",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        icon: Icon(Icons.warning_amber_rounded),
-      );
-      return;
-    }
-
-    if (taskController.teacherType == null ||
-        taskController.teacherId == null) {
-      Get.snackbar(
-        "Error",
-        "Teacher information not initialized. Please try again.",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        icon: Icon(Icons.warning_amber_rounded),
-      );
-      return;
-    }
-
-    _addTaskToDb();
-  }
-
-  void _getDateFromUser() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(DateTime.now().year - 5),
-      lastDate: DateTime(DateTime.now().year + 5),
+  Widget _buildInputField(
+    String title,
+    String hint,
+    TextEditingController? ctrlField, {
+    IconData? icon,
+    VoidCallback? onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: ctrlField,
+            readOnly: onPressed != null,
+            onTap: onPressed,
+            decoration: InputDecoration(
+              hintText: hint,
+              suffixIcon: icon != null ? Icon(icon) : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
-    if (pickedDate != null) {
-      setState(() {
-        selectedDate = pickedDate;
-      });
-    }
   }
 
-  void _getStartTimeFromUser() async {
-    TimeOfDay? time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
+  Widget _buildDropdown(
+    String title,
+    String? selected,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          DropdownButtonFormField<String>(
+            value: selected,
+            hint: Text("Select $title"),
+            items:
+                items
+                    .map(
+                      (val) => DropdownMenuItem(value: val, child: Text(val)),
+                    )
+                    .toList(),
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
-    if (time != null) {
-      setState(() {
-        startTime = time.format(context);
-      });
-    }
-  }
-
-  void _getEndTimeFromUser() async {
-    TimeOfDay? time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (time != null) {
-      setState(() {
-        endTime = time.format(context);
-      });
-    }
-  }
-
-  void _addTaskToDb() async {
-    String scheduleCode = _generateScheduleCode();
-    Task newTask = Task(
-      title: _titleController.text,
-      note: _noteController.text,
-      date: DateFormat.yMd().format(selectedDate),
-      startTime: startTime,
-      endTime: endTime,
-      reminderMinutes: reminderMinutes ?? 0,
-      repeat: selectedRepeat,
-      color: selectedColor,
-      isCompleted: 0,
-      scheduleCode: scheduleCode,
-      batch: '',
-    );
-
-    // Save task in Firestore
-    bool success = await taskController.addTask(newTask);
-    if (success) {
-      Get.snackbar(
-        "Success",
-        "Schedule Created Successfully",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-      Get.back();
-    } else {
-      Get.snackbar(
-        "Error",
-        "Failed to create schedule. Please try again.",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-  }
-
-  String _generateScheduleCode() {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    return List.generate(
-      6,
-      (index) => chars[Random().nextInt(chars.length)],
-    ).join();
   }
 
   Widget _colorSelectedIndex() {
@@ -322,7 +313,7 @@ class _SchedulingState extends State<Scheduling> {
               backgroundColor: [Colors.red, Colors.blue, Colors.green][index],
               child:
                   selectedColor == index
-                      ? Icon(Icons.done, color: Colors.white, size: 16)
+                      ? const Icon(Icons.done, color: Colors.white, size: 16)
                       : Container(),
             ),
           ),
@@ -330,7 +321,130 @@ class _SchedulingState extends State<Scheduling> {
       }),
     );
   }
-}
 
-// grab the code from the profile.dart file
-//  schedule ka Ui thik nahi lag raha hai upgrade karna padega future me
+  void _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) setState(() => selectedDate = picked);
+  }
+
+  void _pickStartTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) setState(() => startTime = picked.format(context));
+  }
+
+  void _pickEndTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) setState(() => endTime = picked.format(context));
+  }
+
+  // 🔥 Random schedule code (keep as in your old code)
+  String _generateScheduleCode() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return List.generate(
+      6,
+      (index) => chars[Random().nextInt(chars.length)],
+    ).join();
+  }
+
+  // ✔️ Validate and save schedule to Firestore
+  void _validateAndAddTask() async {
+    if (_titleController.text.isEmpty ||
+        _noteController.text.isEmpty ||
+        selectedYearLevel == null ||
+        selectedBatch == null ||
+        selectedSubject == null) {
+      Get.snackbar(
+        "Error",
+        "Please fill all fields",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    String scheduleCode = _generateScheduleCode();
+
+    // Automatically pick correct AcademicYear
+    final years = await _fetchAcademicYearsSorted();
+    String? academicYear;
+    if (selectedYearLevel == "FY" && years.isNotEmpty) {
+      academicYear = years.last;
+    } else if (selectedYearLevel == "SY" && years.length > 1) {
+      academicYear = years[years.length - 2];
+    } else if (selectedYearLevel == "TY" && years.length > 2) {
+      academicYear = years[years.length - 3];
+    }
+
+    if (academicYear == null) {
+      Get.snackbar(
+        "Error",
+        "Academic Year not found",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    Map<String, dynamic> scheduleData = {
+      'title': _titleController.text,
+      'note': _noteController.text,
+      'date': DateFormat.yMd().format(selectedDate),
+      'startTime': startTime,
+      'endTime': endTime,
+      'reminderMinutes': reminderMinutes ?? 5,
+      'repeat': selectedRepeat,
+      'color': selectedColor,
+      'isCompleted': 0,
+      'scheduleCode': scheduleCode,
+      'batch': selectedBatch,
+      'subject': selectedSubject,
+      'yearLevel': selectedYearLevel,
+      'academicYear': academicYear,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('Collages')
+          .doc(collegeName)
+          .collection('Departments')
+          .doc(departmentName)
+          .collection('AcademicYear')
+          .doc(academicYear)
+          .collection(selectedYearLevel!)
+          .doc(selectedBatch!) // Each batch is a doc under FY/SY/TY
+          .collection('LectureSchedules')
+          .add(scheduleData);
+
+      Get.snackbar(
+        "Success",
+        "Schedule Created Successfully",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      Get.back();
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        "Failed to save schedule: $e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+}

@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:noproxys/components/App_widgets/students/Home_widgets/calender.dart';
 import 'package:noproxys/components/App_widgets/students/Home_widgets/checkin.dart';
 import 'package:noproxys/components/App_widgets/students/Home_widgets/overview.dart';
-import 'package:noproxys/components/Buttons/lacture_button_sheetS.dart';
+import 'package:noproxys/components/App_widgets/teachers/Buttons/lacture_button_sheetS.dart';
 import 'package:noproxys/components/controller/lacture_card.dart';
 import 'package:noproxys/components/controller/student_lectures_controller.dart';
 import 'package:noproxys/model/task.dart';

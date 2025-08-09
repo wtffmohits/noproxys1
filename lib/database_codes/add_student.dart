@@ -30,10 +30,26 @@ Future<void> addSingleStudentToSpecifiedLocation() async {
       .collection('AcademicYear')
       .doc('2022-2025')
       .collection('FY')
-      .doc('Students') // "Students" is a document here
+      .doc('Batch-A') // "Students" is a document here
       .collection('student-id') // "student-id" is a collection
       .doc('1') // student docID
       .set(studentData);
 
   print('🎉 Student data added!');
 }
+
+
+// add students batch wise 
+// await FirebaseFirestore.instance
+//   .collection('Collages')
+//   .doc('Thakur Shyamnarayan Degree Collage')
+//   .collection('Departments')
+//   .doc('BSC-IT')
+//   .collection('AcademicYear')
+//   .doc('2022-2025')
+//   .collection('FY')
+//   .collection('Batch-A')
+//   .doc('student-id')
+//   .collection('student-id')   // Keep only if you want to allow multiple sub-levels
+//   .doc('1')
+//   .set(studentData);

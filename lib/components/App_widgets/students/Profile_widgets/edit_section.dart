@@ -372,3 +372,30 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   //   );
   // }
 }
+
+Future<Map<String, dynamic>?> fetchSemesterDataForStudent({
+  required String collegeName,
+  required String departmentName,
+  required String academicYear,
+  required String yearLevel, // e.g. "FY", "SY", "TY"
+  required String semesterId, // e.g. "Semester-1"
+}) async {
+  final firestore = FirebaseFirestore.instance;
+
+  final semesterDocRef = firestore
+      .collection('Collages')
+      .doc(collegeName)
+      .collection('Departments')
+      .doc(departmentName)
+      .collection('AcademicYear')
+      .doc(academicYear)
+      .collection(yearLevel) // FY, SY, TY
+      .doc(semesterId); // Semester-1
+
+  final snapshot = await semesterDocRef.get();
+  if (!snapshot.exists) {
+    print('❌ Semester "$semesterId" not found!');
+    return null;
+  }
+  return snapshot.data();
+}
