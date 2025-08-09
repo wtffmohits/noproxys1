@@ -1,59 +1,104 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-Future<void> seedSemesterSubjects(
-  String collegeName,
-  String departmentName,
-  String AcademicYear,
-) async {
+Future<void> seedFY_SY_TY_withSemesters({
+  required String collegeName,
+  required String departmentName,
+  required String academicYear, // e.g. "2022-2025"
+}) async {
   final firestore = FirebaseFirestore.instance;
 
-  // Check if department exists
-  final departmentDoc =
+  // Map of year section (FY/SY/TY) and their respective semesters
+  final Map<String, Map<String, List<String>>> data = {
+    'FY': {
+      'Semester-1': ['Maths I', 'Physics I', 'Programming Fundamentals'],
+      'Semester-2': ['Maths II', 'Digital Logic', 'Data Structures'],
+    },
+    'SY': {
+      'Semester-3': ['Discrete Maths', 'OOPS', 'Database'],
+      'Semester-4': ['Operating System', 'Web Dev', 'Java'],
+    },
+    'TY': {
+      'Semester-5': ['Networking', 'Software Engg', 'Mobile Computing'],
+      'Semester-6': ['Cloud', 'Security', 'Project Work'],
+    },
+  };
+
+  // Check main AcademicYear exists
+  final academicYearDoc =
       await firestore
           .collection('Collages')
           .doc(collegeName)
           .collection('Departments')
           .doc(departmentName)
           .collection('AcademicYear')
-          .doc(AcademicYear)
+          .doc(academicYear)
           .get();
 
-  if (!departmentDoc.exists) {
+  if (!academicYearDoc.exists) {
     print(
-      '❌ Department "$departmentName" does not exist under "$collegeName".',
+      '❌ AcademicYear "$academicYear" not found under "$departmentName". Pehle AcademicYear create karo.',
     );
     return;
   }
 
-  Map<String, List<String>> semesterSubjects = {
-    'Semester-1': ['Maths I', 'Physics I', 'Programming Fundamentals'],
-    'Semester-2': ['Maths II', 'Digital Logic', 'Data Structures'],
-    'Semester-3': ['Discrete Maths', 'OOPS', 'Database'],
-    'Semester-4': ['Operating System', 'Web Dev', 'Java'],
-    'Semester-5': ['Networking', 'Software Engg', 'Mobile Computing'],
-    'Semester-6': ['Cloud', 'Security', 'Project Work'],
-  };
-
-  for (var entry in semesterSubjects.entries) {
-    final semesterDocRef = firestore
+  // Iterate through FY/SY/TY
+  for (final yearSection in data.keys) {
+    // FY/SY/TY node create (if not present)
+    final yearSectionRef = firestore
         .collection('Collages')
         .doc(collegeName)
         .collection('Departments')
         .doc(departmentName)
         .collection('AcademicYear')
-        .doc(AcademicYear)
-        .collection('Semesters')
-        .doc(entry.key);
+        .doc(academicYear)
+        .collection(yearSection);
 
-    final semesterDoc = await semesterDocRef.get();
+    // Iterate through semesters for this section
+    for (final entry in data[yearSection]!.entries) {
+      final semester = entry.key;
+      final subjects = entry.value;
 
-    if (!semesterDoc.exists) {
-      await semesterDocRef.set({'subjects': entry.value});
-      print('✅ Added ${entry.key}');
-    } else {
-      print('⚠️ ${entry.key} already exists, skipping...');
+      final semesterDocRef = yearSectionRef
+          .doc(
+            'Students',
+          ) // Dummy doc, as we can't put a subcollection directly under a collection group
+          .collection('Semesters')
+          .doc(semester);
+
+      // Actually, Firestore structure favors direct:
+      // .../AcademicYear/{batch}/FY/Semesters/{semesterId}
+
+      final correctSemesterDocRef = firestore
+          .collection('Collages')
+          .doc(collegeName)
+          .collection('Departments')
+          .doc(departmentName)
+          .collection('AcademicYear')
+          .doc(academicYear)
+          .collection(yearSection)
+          .doc('Semesters')
+          .collection(semester);
+
+      final semesterDoc = await semesterDocRef.get();
+
+      if (!semesterDoc.exists) {
+        await semesterDocRef.set({'subjects': subjects});
+        print('✅ Added $yearSection | $semester');
+      } else {
+        print('⚠️ $yearSection | $semester already exists, skipping...');
+      }
     }
   }
-
-  print('🎉 Semester subjects added successfully.');
+  print('🎉 FY/SY/TY semesters added successfully!');
 }
+
+
+
+// write this in main.dart to seed the data
+
+  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // await seedSemesterSubjects(
+  //   'Thakur Shyamnarayan Degree Collage',
+  //   'BSC-IT',
+  //   '2022-2025',
+  // );

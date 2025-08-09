@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+
 import 'package:noproxys/components/App_widgets/students/Home_widgets/calender.dart';
 import 'package:noproxys/components/App_widgets/students/Home_widgets/checkin.dart';
 import 'package:noproxys/components/App_widgets/students/Home_widgets/overview.dart';
@@ -23,6 +24,7 @@ class _HomePageState extends State<HomePage> {
   final StudentLecturesController _lecturesController = Get.put(
     StudentLecturesController(),
   );
+
   DateTime _selectedDate = DateTime.now();
   bool _isSwiped = false;
 
@@ -30,35 +32,37 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final orientation = MediaQuery.of(context).orientation;
+
     return Scaffold(
       backgroundColor: Colors.blue,
       appBar: const PreferredSize(
         preferredSize: Size.fromHeight(60),
         child: TAppbar(),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: Column(
-            children: [
-              Container(
-                height:
-                    size.height -
-                    kToolbarHeight -
-                    bottomPadding, // Adjust height
-                width: size.width,
-                decoration: const BoxDecoration(
-                  color: Color.fromRGBO(245, 245, 245, 1.0),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
-                  ),
+      body: Column(
+        children: [
+          SizedBox(height: size.height * 0.025), // top padding ~2.5% of height
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Color.fromRGBO(245, 245, 245, 1.0),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
                 ),
-                padding: const EdgeInsets.all(20.0),
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: size.width * 0.05,
+                vertical: size.height * 0.02,
+              ),
+              child: SingleChildScrollView(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Overview(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: size.height * 0.025),
                     Calender(
                       onDateSelected: (date) {
                         setState(() {
@@ -66,9 +70,9 @@ class _HomePageState extends State<HomePage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: size.height * 0.025),
                     const Checkins(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: size.height * 0.025),
                     SwipeableButtonView(
                       onFinish: () async {
                         await Navigator.push(
@@ -79,7 +83,7 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                       onWaitingProcess: () {
-                        Future.delayed(Duration(seconds: 2), () {
+                        Future.delayed(const Duration(seconds: 2), () {
                           setState(() {
                             _isSwiped = true;
                           });
@@ -89,37 +93,44 @@ class _HomePageState extends State<HomePage> {
                       buttonWidget: Container(),
                       buttonText: "Swipe to check IN",
                     ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Text(
-                            "Upcoming Lectures:",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    SizedBox(height: size.height * 0.035),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: size.width * 0.01,
+                      ),
+                      child: Text(
+                        "Upcoming Lectures:",
+                        style: TextStyle(
+                          fontSize:
+                              orientation == Orientation.portrait
+                                  ? size.width * 0.05
+                                  : size.height * 0.05,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
+                      ),
                     ),
-
-                    const SizedBox(height: 20),
-                    UpcomingLectures(),
+                    SizedBox(height: size.height * 0.025),
+                    // UpcomingLectures with limited height for better UX on larger screens
+                    SizedBox(
+                      height:
+                          orientation == Orientation.portrait
+                              ? size.height * 0.4
+                              : size.height * 0.6,
+                      child: UpcomingLectures(size: size),
+                    ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget UpcomingLectures() {
+  Widget UpcomingLectures({required Size size}) {
     return Obx(() {
+      // Filter lectures by formatted selected date (use yMd format)
       List<Task> filteredTasks =
           _lecturesController.lecturesList
               .where(
@@ -128,12 +139,20 @@ class _HomePageState extends State<HomePage> {
               .toList();
 
       if (filteredTasks.isEmpty) {
-        return const Center(child: Text("No lectures found"));
+        return Center(
+          child: Text(
+            "No lectures found",
+            style: TextStyle(
+              fontSize: size.width * 0.045,
+              color: Colors.grey[600],
+            ),
+          ),
+        );
       }
 
       return ListView.builder(
         shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: filteredTasks.length,
         itemBuilder: (context, index) {
           Task task = filteredTasks[index];
@@ -148,14 +167,20 @@ class _HomePageState extends State<HomePage> {
                 );
               });
             },
-            child: LectureCard(
-              lecture: Lecture(
-                title: task.title ?? 'No Title',
-                note: task.note ?? 'No Note',
-                date: task.date,
-                startTime: task.startTime,
-                endTime: task.endTime,
-                color: task.color,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: size.height * 0.008,
+                horizontal: size.width * 0.01,
+              ),
+              child: LectureCard(
+                lecture: Lecture(
+                  title: task.title ?? 'No Title',
+                  note: task.note ?? 'No Note',
+                  date: task.date,
+                  startTime: task.startTime,
+                  endTime: task.endTime,
+                  color: task.color,
+                ),
               ),
             ),
           );
@@ -164,5 +189,3 @@ class _HomePageState extends State<HomePage> {
     });
   }
 }
-
-// edhar ka kaam aabhi bhi baaki hai

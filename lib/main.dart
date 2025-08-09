@@ -3,17 +3,20 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:noproxys/App.dart';
 import 'package:noproxys/database_codes/add_semester.dart';
+import 'package:noproxys/database_codes/add_student.dart';
 import 'package:noproxys/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await seedSemesterSubjects(
-    'Thakur Shyamnarayan Degree Collage',
-    'BSC-IT',
-    '2025',
+  await copyStudentsToAcademicYear(
+    collegeName: 'Thakur Shyamnarayan Degree Collage',
+    departmentName: 'BSC-IT',
+    academicYearToCopyTo: '2022-2025', // Target AcademicYear
+    sourceYear: '2023', // Source Year (original batch year)
   );
+
   runApp(const MyApp());
 }
 
