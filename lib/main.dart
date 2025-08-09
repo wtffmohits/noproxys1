@@ -10,12 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await copyStudentsToAcademicYear(
-    collegeName: 'Thakur Shyamnarayan Degree Collage',
-    departmentName: 'BSC-IT',
-    academicYearToCopyTo: '2022-2025', // Target AcademicYear
-    sourceYear: '2023', // Source Year (original batch year)
-  );
+  await addSingleStudentToSpecifiedLocation();
 
   runApp(const MyApp());
 }
