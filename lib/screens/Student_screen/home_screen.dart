@@ -7,32 +7,47 @@ import 'package:noproxys/components/App_widgets/students/Home_widgets/checkin.da
 import 'package:noproxys/components/App_widgets/students/Home_widgets/overview.dart';
 import 'package:noproxys/components/App_widgets/teachers/Buttons/lacture_button_sheetS.dart';
 import 'package:noproxys/components/controller/lacture_card.dart';
+
 import 'package:noproxys/components/controller/student_lectures_controller.dart';
 import 'package:noproxys/model/task.dart';
-import 'package:noproxys/screens/Student_screen/lecture_qr_scan_screen.dart';
 import 'package:noproxys/widgets/Appbar/Appbar.dart';
-import 'package:swipeable_button_view/swipeable_button_view.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class HomeScreenS extends StatefulWidget {
+  const HomeScreenS({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomeScreenS> createState() => _HomeScreenSState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomeScreenSState extends State<HomeScreenS> {
   final StudentLecturesController _lecturesController = Get.put(
     StudentLecturesController(),
   );
 
+  // TODO: Replace these with actual logged-in student details
+  final String collegeName = 'Thakur Shyamnarayan Degree Collage';
+  final String departmentName = 'BSC-IT';
+  final String academicYear = '2023-2026';
+  final String yearLevel = 'FY';
+  final String batchName = 'Batch-A';
+
   DateTime _selectedDate = DateTime.now();
-  bool _isSwiped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lecturesController.getLectures(
+      collegeName: collegeName,
+      departmentName: departmentName,
+      academicYear: academicYear,
+      yearLevel: yearLevel,
+      batchName: batchName,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final orientation = MediaQuery.of(context).orientation;
 
     return Scaffold(
       backgroundColor: Colors.blue,
@@ -40,11 +55,11 @@ class _HomePageState extends State<HomePage> {
         preferredSize: Size.fromHeight(60),
         child: TAppbar(),
       ),
-      body: Column(
-        children: [
-          SizedBox(height: size.height * 0.025), // top padding ~2.5% of height
-          Expanded(
-            child: Container(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        child: Column(
+          children: [
+            Container(
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: Color.fromRGBO(245, 245, 245, 1.0),
@@ -53,89 +68,48 @@ class _HomePageState extends State<HomePage> {
                   topRight: Radius.circular(25),
                 ),
               ),
-              padding: EdgeInsets.symmetric(
-                horizontal: size.width * 0.05,
-                vertical: size.height * 0.02,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Overview(),
-                    SizedBox(height: size.height * 0.025),
-                    Calender(
-                      onDateSelected: (date) {
-                        setState(() {
-                          _selectedDate = date;
-                        });
-                      },
-                    ),
-                    SizedBox(height: size.height * 0.025),
-                    const Checkins(),
-                    SizedBox(height: size.height * 0.025),
-                    SwipeableButtonView(
-                      onFinish: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LectureQrScanScreen(),
-                          ),
-                        );
-                      },
-                      onWaitingProcess: () {
-                        Future.delayed(const Duration(seconds: 2), () {
-                          setState(() {
-                            _isSwiped = true;
-                          });
-                        });
-                      },
-                      activeColor: Colors.blueAccent,
-                      buttonWidget: Container(),
-                      buttonText: "Swipe to check IN",
-                    ),
-                    SizedBox(height: size.height * 0.035),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: size.width * 0.01,
-                      ),
-                      child: Text(
-                        "Upcoming Lectures:",
-                        style: TextStyle(
-                          fontSize:
-                              orientation == Orientation.portrait
-                                  ? size.width * 0.05
-                                  : size.height * 0.05,
-                          fontWeight: FontWeight.bold,
-                        ),
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  const Overview(),
+                  const SizedBox(height: 20),
+                  Calender(
+                    onDateSelected: (date) {
+                      setState(() {
+                        _selectedDate = date;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  const Checkins(),
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Text(
+                      "Upcoming Lectures:",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: size.height * 0.025),
-                    // UpcomingLectures with limited height for better UX on larger screens
-                    SizedBox(
-                      height:
-                          orientation == Orientation.portrait
-                              ? size.height * 0.4
-                              : size.height * 0.6,
-                      child: UpcomingLectures(size: size),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildUpcomingLectures(context),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget UpcomingLectures({required Size size}) {
+  Widget _buildUpcomingLectures(BuildContext context) {
     return Obx(() {
-      // Filter lectures by formatted selected date (use yMd format)
+      String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
       List<Task> filteredTasks =
           _lecturesController.lecturesList
-              .where(
-                (task) => task.date == DateFormat.yMd().format(_selectedDate),
-              )
+              .where((task) => task.date == formattedDate)
               .toList();
 
       if (filteredTasks.isEmpty) {
@@ -143,7 +117,7 @@ class _HomePageState extends State<HomePage> {
           child: Text(
             "No lectures found",
             style: TextStyle(
-              fontSize: size.width * 0.045,
+              fontSize: MediaQuery.of(context).size.width * 0.045,
               color: Colors.grey[600],
             ),
           ),
@@ -152,35 +126,31 @@ class _HomePageState extends State<HomePage> {
 
       return ListView.builder(
         shrinkWrap: true,
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         itemCount: filteredTasks.length,
         itemBuilder: (context, index) {
           Task task = filteredTasks[index];
           return GestureDetector(
             onTap: () {
-              showLectureOptions(context, task.title ?? "CS-101", () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LectureQrScanScreen(),
-                  ),
-                );
-              });
+              showLectureOptionsStudent(
+                context,
+                task.scheduleCode ?? '',
+                () {
+                  // View details
+                },
+                () {
+                  // Feedback
+                },
+              );
             },
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: size.height * 0.008,
-                horizontal: size.width * 0.01,
-              ),
-              child: LectureCard(
-                lecture: Lecture(
-                  title: task.title ?? 'No Title',
-                  note: task.note ?? 'No Note',
-                  date: task.date,
-                  startTime: task.startTime,
-                  endTime: task.endTime,
-                  color: task.color,
-                ),
+            child: LectureCard(
+              lecture: Lecture(
+                title: task.title ?? 'No Title',
+                note: task.note ?? 'No Note',
+                date: task.date,
+                startTime: task.startTime,
+                endTime: task.endTime,
+                color: task.color,
               ),
             ),
           );

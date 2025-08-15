@@ -57,7 +57,7 @@ class NavigationController extends GetxController {
   final RxInt selectedIndex = 0.obs;
 
   final screens = [
-    HomePage(),
+    HomeScreenS(),
     const QrScanScreen(),
     PieChartSample(),
     const ProfileScreen(),

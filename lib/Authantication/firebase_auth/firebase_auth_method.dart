@@ -9,18 +9,49 @@ class AuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// 🔍 Check if student exists by phone number (using Contact field)
-  Future<bool> checkIfUserExists(String phoneNumber) async {
+  Future<Map<String, dynamic>?> getStudentDataByPhone(
+    String phoneNumber,
+  ) async {
     try {
-      final studentQuery = _firestore
-          .collectionGroup('student-id')
-          .where('Contact', isEqualTo: phoneNumber); // field must be 'Contact'
+      String normalizedPhone = phoneNumber.trim();
+      if (!normalizedPhone.startsWith('+')) {
+        normalizedPhone =
+            '+91$normalizedPhone'; // India country code add kar do agar missing ho
+      }
 
-      final studentResult = await studentQuery.get();
+      // Firestore collection group search in all "student-id" collections
+      QuerySnapshot<Map<String, dynamic>> querySnapshot =
+          await _firestore
+              .collectionGroup('student-id')
+              .where('Contact', isEqualTo: normalizedPhone)
+              .limit(1) // sirf pehla match chahiye
+              .get();
 
-      return studentResult.docs.isNotEmpty;
+      if (querySnapshot.docs.isNotEmpty) {
+        var studentDoc = querySnapshot.docs.first;
+        print("Student found: ${studentDoc.data()}");
+        // Additional info: Firestore path se AcademicYear, YearLevel, Batch pata laga sakte ho:
+        String academicYear =
+            studentDoc.reference.parent.parent?.parent?.id ??
+            'UnknownAcademicYear';
+        String yearLevel =
+            studentDoc.reference.parent.parent?.id ?? 'UnknownYearLevel';
+        String batch = studentDoc.reference.parent.id;
+
+        Map<String, dynamic> studentData = Map.from(studentDoc.data());
+        // Extra metadata add karne ke liye:
+        studentData['academicYear'] = academicYear;
+        studentData['yearLevel'] = yearLevel;
+        studentData['batch'] = batch;
+
+        return studentData;
+      } else {
+        print("No student found for phone: $normalizedPhone");
+        return null;
+      }
     } catch (e) {
-      print("Error checking user existence: $e");
-      return false;
+      print("Failed to fetch student by phone: $e");
+      return null;
     }
   }
 

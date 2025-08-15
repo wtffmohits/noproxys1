@@ -38,7 +38,8 @@ class _RegisterPageState extends State<RegisterPage> {
       String phoneNumber =
           "+${selectedCountry.phoneCode}${phoneController.text.trim()}";
 
-      bool userExists = await _authService.checkIfUserExists(phoneNumber);
+      bool userExists =
+          (await _authService.getStudentDataByPhone(phoneNumber)) as bool;
 
       // This ensures that the widget is still in the tree before proceeding
       if (!mounted) return;
