@@ -38,10 +38,8 @@ class _RegisterPageState extends State<RegisterPage> {
       String phoneNumber =
           "+${selectedCountry.phoneCode}${phoneController.text.trim()}";
 
-      bool userExists =
-          (await _authService.getStudentDataByPhone(phoneNumber)) as bool;
+      bool userExists = await _authService.getStudentByPhone(phoneNumber);
 
-      // This ensures that the widget is still in the tree before proceeding
       if (!mounted) return;
 
       if (userExists) {
@@ -50,11 +48,10 @@ class _RegisterPageState extends State<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Phone number not registered.")),
         );
+        setState(() {
+          _isLoading = false;
+        });
       }
-
-      setState(() {
-        _isLoading = false;
-      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Enter a valid 10-digit phone number")),
