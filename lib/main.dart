@@ -40,4 +40,4 @@ class MyApp extends StatelessWidget {
 // we will use dio for network requests
 // we will use get_it for dependency injection
 // we will use shared_preferences for local storage
-// we will use flutter_local_notifications for push notifications
+// we will use flutter_local_notifications for push notificationsnbnmb
