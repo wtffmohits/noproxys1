@@ -29,35 +29,37 @@ class _RegisterPageState extends State<RegisterPage> {
     e164Key: "",
   );
 
-  void handleSendOtp() async {
-    if (phoneController.text.length == 10) {
-      setState(() {
-        _isLoading = true;
-      });
+  
+void handleSendOtp() async {
+  if (phoneController.text.length == 10) {
+    setState(() {
+      _isLoading = true;
+    });
 
-      String phoneNumber =
-          "+${selectedCountry.phoneCode}${phoneController.text.trim()}";
+    String phoneNumber =
+        "+${selectedCountry.phoneCode}${phoneController.text.trim()}";
 
-      bool userExists = await _authService.getStudentByPhone(phoneNumber);
+    bool userExists = await _authService.getStudentByPhone(phoneNumber);
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      if (userExists) {
-        _authService.sendOtp(context: context, phoneNumber: phoneNumber);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Phone number not registered.")),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (userExists) {
+      _authService.sendOtp(context: context, phoneNumber: phoneNumber);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter a valid 10-digit phone number")),
+        const SnackBar(content: Text("Phone number not registered.")),
       );
+      setState(() {
+        _isLoading = false;
+      });
     }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Enter a valid 10-digit phone number")),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

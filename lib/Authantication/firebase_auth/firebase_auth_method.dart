@@ -9,37 +9,45 @@ class AuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Check if student exists by phone number (using 'contact' field lowercase!)
-  Future<bool> getStudentByPhone(String phoneNumber) async {
-    try {
-      String normalizedPhone = phoneNumber.trim();
-      if (!normalizedPhone.startsWith('+')) {
-        normalizedPhone = '+91$normalizedPhone'; // India code
+Future<bool> getStudentByPhone(String phoneNumber) async {
+  final firestore = FirebaseFirestore.instance;
+  final collageSnapshot = await firestore.collection("Collages").get();
+
+  for (var collageDoc in collageSnapshot.docs) {
+    final departmentsSnapshot =
+        await collageDoc.reference.collection("Departments").get();
+
+    for (var deptDoc in departmentsSnapshot.docs) {
+      final academicYearsSnapshot =
+          await deptDoc.reference.collection("AcademicYear").get();
+
+      for (var yearDoc in academicYearsSnapshot.docs) {
+        // yearDoc: e.g. "2023-2026"
+        final years = ["FY", "SY", "TY"];
+
+        for (var year in years) {
+          final yearCollectionRef = yearDoc.reference.collection(year);
+
+          final batchesSnapshot = await yearCollectionRef.get();
+
+          for (var batchDoc in batchesSnapshot.docs) {
+            final studentIdsSnapshot =
+                await batchDoc.reference.collection("student-id").where(
+                      "contact",
+                      isEqualTo: phoneNumber.replaceAll(" ", "").replaceAll("-", ""),
+                    ).get();
+
+            if (studentIdsSnapshot.docs.isNotEmpty) {
+              return true;
+            }
+          }
+        }
       }
-      print("Looking for phone: $normalizedPhone");
-
-      final docs =
-          await _firestore
-              .collectionGroup('student-id')
-              .where(
-                'contact',
-                isEqualTo: normalizedPhone,
-              ) // lowercase 'contact'
-              .get();
-
-      print("Docs Found: ${docs.docs.length}");
-
-      if (docs.docs.isNotEmpty) {
-        print("Student found: ${docs.docs.first.data()}");
-        return true;
-      } else {
-        print("Student not found for phone: $normalizedPhone");
-        return false;
-      }
-    } catch (e) {
-      print("Error: $e");
-      return false;
     }
   }
+  return false;
+}
+
 
   /// Send OTP using Firebase Auth
   void sendOtp({

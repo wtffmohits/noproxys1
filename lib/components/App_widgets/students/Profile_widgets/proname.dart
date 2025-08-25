@@ -19,7 +19,6 @@ class _PronameState extends State<Proname> {
     fetchStudentData();
   }
 
-  // This function has been updated for efficiency.
   Future<void> fetchStudentData() async {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -42,29 +41,23 @@ class _PronameState extends State<Proname> {
       return;
     }
 
-    // Normalize the phone number to ensure it has the +91 prefix.
+    // Normalize phone number: prefix +91 if only 10 digits
     String normalizedPhone = originalPhone;
     if (!normalizedPhone.startsWith('+91') && normalizedPhone.length == 10) {
       normalizedPhone = '+91$normalizedPhone';
     }
 
-    print("🔍 Searching for contact: $normalizedPhone");
+    print("🔍 Searching for contact: $normalizedPhone"); // Should match screenshot
 
     try {
       final firestore = FirebaseFirestore.instance;
 
-      // Use a Collection Group query to efficiently search across all 'student-id' subcollections.
-      // This is much faster than iterating through each college, department, and division.
-      final studentQuerySnapshot =
-          await firestore
-              .collectionGroup(
-                'student-id',
-              ) // IMPORTANT: Searches all collections named 'student-id'
-              .where('Contact', isEqualTo: normalizedPhone)
-              .limit(
-                1,
-              ) // We only need one result, assuming contact numbers are unique.
-              .get();
+      // Search all 'student-id' subcollections, on lowercase 'contact' field
+      final studentQuerySnapshot = await firestore
+          .collectionGroup('student-id')
+          .where('contact', isEqualTo: normalizedPhone)
+          .limit(1)
+          .get();
 
       if (studentQuerySnapshot.docs.isEmpty) {
         print("❌ No student found with contact: $normalizedPhone");
@@ -74,27 +67,22 @@ class _PronameState extends State<Proname> {
         return;
       }
 
-      // Student found, now get the document and its data.
       final studentDoc = studentQuerySnapshot.docs.first;
       final studentDataMap = studentDoc.data();
-      print("✅ Student found: ${studentDataMap['Name']}");
+      print("✅ Student found: ${studentDataMap['name']}");
 
-      // Now, we get the parent documents to retrieve College, Department, and Division info.
-      // The path is: Collages/{collageId}/students/{deptId}/Devision/{batchId}/student-id/{studentId}
+      // Get parent info (Collage, Department, Batch)
       DocumentReference batchRef = studentDoc.reference.parent.parent!;
       DocumentReference deptRef = batchRef.parent.parent!;
       DocumentReference collageRef = deptRef.parent.parent!;
 
-      // Fetch the collage document to get its name from the 'Collage' field.
       final collageDoc = await collageRef.get();
       final collageData = collageDoc.data() as Map<String, dynamic>?;
 
       setState(() {
         studentData = {
           ...studentDataMap,
-          "Collage":
-              collageData?['Collage'] ??
-              collageRef.id, // Use field value or the ID as a fallback
+          "Collage": collageData?['Collage'] ?? collageRef.id,
           "CollageID": collageRef.id,
           "Department": deptRef.id,
           "Division": batchRef.id,
@@ -139,12 +127,7 @@ class _PronameState extends State<Proname> {
         children: [
           CircleAvatar(
             radius: _calculateAvatarRadius(context),
-            // Make sure you have this image in your assets folder
-            // and have declared it in pubspec.yaml
-            backgroundImage: const AssetImage(""),
-            onBackgroundImageError: (exception, stackTrace) {
-              print('Error loading image: $exception');
-            },
+            backgroundColor: Colors.blue[100],
             child: const Icon(Icons.person, size: 40), // Fallback icon
           ),
           const SizedBox(width: 16),
@@ -154,7 +137,7 @@ class _PronameState extends State<Proname> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "${studentData?["Name"] ?? 'N/A'}",
+                  "${studentData?["name"] ?? 'N/A'}", // field is lowercase
                   style: TextStyle(
                     fontSize: _calculateFontSize(context, 20),
                     fontWeight: FontWeight.bold,
@@ -179,13 +162,11 @@ class _PronameState extends State<Proname> {
 
   double _calculateAvatarRadius(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    // Set a max radius to avoid it being too large on wide screens
     return (screenWidth * 0.1).clamp(30.0, 50.0);
   }
 
   double _calculateFontSize(BuildContext context, double baseFontSize) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    // Adjust font size based on screen width
     if (screenWidth > 600) {
       return baseFontSize;
     } else if (screenWidth > 400) {

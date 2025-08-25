@@ -20,7 +20,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     fetchStudentData();
   }
 
-  /// Fetches student data efficiently using a Firestore collectionGroup query.
+  /// Fetches student data using collectionGroup query compatible with nested Firestore structure.
   Future<void> fetchStudentData() async {
     setState(() {
       isLoading = true;
@@ -30,7 +30,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      print("❗ User not logged in.");
       setState(() {
         isLoading = false;
         errorMessage = "You are not logged in.";
@@ -39,8 +38,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     }
 
     String? originalPhone = user.phoneNumber;
+
     if (originalPhone == null || originalPhone.isEmpty) {
-      print("❗ Phone number is null or empty.");
       setState(() {
         isLoading = false;
         errorMessage = "Phone number not available.";
@@ -48,41 +47,33 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       return;
     }
 
-    // Normalize phone number to ensure it has the +91 prefix for querying
+    // Normalize phone number to include +91 prefix if missing
     String normalizedPhone = originalPhone;
     if (!normalizedPhone.startsWith('+91') && normalizedPhone.length == 10) {
       normalizedPhone = '+91$normalizedPhone';
     }
 
-    print("🔍 Searching for contact: $normalizedPhone");
-
     try {
       final firestore = FirebaseFirestore.instance;
 
-      // Use a Collection Group query to efficiently search across all 'student-id' subcollections.
-      final studentQuerySnapshot =
-          await firestore
-              .collectionGroup('student-id')
-              .where('Contact', isEqualTo: normalizedPhone)
-              .limit(1)
-              .get();
+      final studentQuerySnapshot = await firestore
+          .collectionGroup('student-id')
+          .where('contact', isEqualTo: normalizedPhone) // Lowercase field, matches your DB
+          .limit(1)
+          .get();
 
       if (studentQuerySnapshot.docs.isEmpty) {
-        print("❌ No student found with contact: $normalizedPhone");
         setState(() {
           isLoading = false;
-          errorMessage =
-              "Student data could not be found for your contact number.";
+          errorMessage = "Student data could not be found for your contact number.";
         });
         return;
       }
 
       final studentDoc = studentQuerySnapshot.docs.first;
-      final studentDataMap = studentDoc.data();
-      print("✅ Student found: ${studentDataMap['Name']}");
+      final studentDataMap = studentDoc.data() as Map<String, dynamic>;
 
-      // Traverse up the document tree to get parent information
-      // Path: Collages/{collageId}/students/{deptId}/Devision/{batchId}/student-id/{studentId}
+      // Get parent references for collage, department, division
       DocumentReference batchRef = studentDoc.reference.parent.parent!;
       DocumentReference deptRef = batchRef.parent.parent!;
       DocumentReference collageRef = deptRef.parent.parent!;
@@ -96,18 +87,17 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           "Collage": collageData?['Collage'] ?? collageRef.id,
           "CollageID": collageRef.id,
           "Department": deptRef.id,
-          "Devision":
-              batchRef.id, // Correctly gets the division/batch name from its ID
+          "Division": batchRef.id,
           "StudentID": studentDoc.id,
         };
         isLoading = false;
       });
     } catch (e) {
-      print("🔥 Firestore query error: $e");
       setState(() {
         isLoading = false;
         errorMessage = "An error occurred while fetching data.";
       });
+      print("Firestore query error: $e");
     }
   }
 
@@ -125,7 +115,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: buildBody(),
-      // bottomNavigationBar: buildSaveButton(),
     );
   }
 
@@ -153,17 +142,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
     return Stack(
       children: [
-        // Blue header background
         Container(height: 120, color: Colors.blue),
         SafeArea(
           child: SingleChildScrollView(
-            // Start scrolling content below the blue header
-            padding: const EdgeInsets.only(
-              top: 60,
-              left: 16,
-              right: 16,
-              bottom: 30,
-            ),
+            padding: const EdgeInsets.only(top: 60, left: 16, right: 16, bottom: 30),
             child: Column(
               children: [
                 const CircleAvatar(
@@ -191,9 +173,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      buildTextField("Full Name", studentData?["Name"]),
+                      buildTextField("Full Name", studentData?["name"]),
                       buildTextField("Email", studentData?["email"]),
-                      buildTextField("Contact", studentData?["Contact"]),
+                      buildTextField("Contact", studentData?["contact"]),
                       const SizedBox(height: 20),
                       _buildCollegeChip(),
                       const Divider(height: 30),
@@ -213,29 +195,16 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: TextField(
-        readOnly: true, // Fields are not editable in this view
+        readOnly: true,
         controller: TextEditingController(text: placeholder ?? 'N/A'),
         decoration: InputDecoration(
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 15,
-            horizontal: 15,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
           labelText: labelText,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: const TextStyle(
-            color: Colors.blue,
-            fontWeight: FontWeight.bold,
-          ),
-          hintStyle: const TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-          ),
+          labelStyle: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          hintStyle: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w400),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
         ),
       ),
     );
@@ -243,7 +212,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   Widget _buildCollegeChip() {
     return Container(
-      width: double.infinity, // पूरे उपलब्ध width को लेगा
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
       decoration: BoxDecoration(
         color: Colors.blue.withOpacity(0.1),
@@ -282,12 +251,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         ),
         const SizedBox(height: 10),
         _buildDetailRow('Course', studentData?["Department"]),
-        // FIX: Convert potential integer values to String to prevent runtime error.
-        _buildDetailRow('Roll No.', studentData?["Roll-no"]?.toString()),
-        _buildDetailRow('Year', studentData?["Year"]?.toString()),
-        _buildDetailRow('Semester', studentData?["Sem"]?.toString()),
-        _buildDetailRow('Division', studentData?["Devision"]),
-        // _buildDetailRow('Subjects', studentData?["Subjects"]?.toString()),
+        _buildDetailRow('Roll No.', studentData?["roll-no"]?.toString()),
+        _buildDetailRow('Year', studentData?["year"]?.toString()),
+        _buildDetailRow('Semester', studentData?["currentSemester"]?.toString()),
+        _buildDetailRow('Division', studentData?["Devision"] ?? studentData?["Division"]),
+        _buildDetailRow('Batch Year', studentData?["batchYear"]?.toString()),
         const SizedBox(height: 10),
         _buildSubjectDetailsSection(),
       ],
@@ -314,13 +282,12 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   }
 
   Widget _buildSubjectDetailsSection() {
-    // Ensure that subjectsList is treated as a List<dynamic>
-    final dynamic Subjects = studentData?["Subjects"];
-    if (Subjects == null || Subjects is! List || Subjects.isEmpty) {
-      return const SizedBox.shrink(); // Don't show anything if no subjects
+    final dynamic subjects = studentData?["subjects"];
+    if (subjects == null || subjects is! List || subjects.isEmpty) {
+      return const SizedBox.shrink();
     }
 
-    final List<dynamic> subjectsList = Subjects;
+    final List<dynamic> subjectsList = subjects;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,68 +301,13 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           ),
         ),
         const SizedBox(height: 5),
-        ...subjectsList.map((Subject) {
+        ...subjectsList.map((subject) {
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text('•  $Subject', style: const TextStyle(fontSize: 15)),
+            child: Text('• $subject', style: const TextStyle(fontSize: 15)),
           );
         }).toList(),
       ],
     );
   }
-
-  // Widget buildSaveButton() {
-  //   return Padding(
-  //     padding: const EdgeInsets.all(16),
-  //     child: ElevatedButton(
-  //       onPressed: () {
-  //         // TODO: Implement save logic here.
-  //         // This will involve creating controllers for each text field,
-  //         // allowing them to be editable, and then on save,
-  //         // updating the document in Firestore.
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           const SnackBar(
-  //             content: Text('Save functionality not implemented yet.'),
-  //           ),
-  //         );
-  //       },
-  //       style: ElevatedButton.styleFrom(
-  //         backgroundColor: Colors.blue,
-  //         foregroundColor: Colors.white,
-  //         padding: const EdgeInsets.symmetric(vertical: 15),
-  //         shape: RoundedRectangleBorder(
-  //           borderRadius: BorderRadius.circular(10),
-  //         ),
-  //       ),
-  //       child: const Text("Save Changes", style: TextStyle(fontSize: 18)),
-  //     ),
-  //   );
-  // }
-}
-
-Future<Map<String, dynamic>?> fetchSemesterDataForStudent({
-  required String collegeName,
-  required String departmentName,
-  required String academicYear,
-  required String yearLevel, // e.g. "FY", "SY", "TY"
-  required String semesterId, // e.g. "Semester-1"
-}) async {
-  final firestore = FirebaseFirestore.instance;
-
-  final semesterDocRef = firestore
-      .collection('Collages')
-      .doc(collegeName)
-      .collection('Departments')
-      .doc(departmentName)
-      .collection('AcademicYear')
-      .doc(academicYear)
-      .collection(yearLevel) // FY, SY, TY
-      .doc(semesterId); // Semester-1
-
-  final snapshot = await semesterDocRef.get();
-  if (!snapshot.exists) {
-    print('❌ Semester "$semesterId" not found!');
-    return null;
-  }
-  return snapshot.data();
 }
