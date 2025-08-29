@@ -5,6 +5,7 @@ import 'package:noproxys/model/task.dart';
 class TaskController extends GetxController {
   var taskList = <Task>[].obs;
 
+  // Batch, yearLevel, academicYear, department wise schedule fetch
   void getTasks({
     required String collegeName,
     required String departmentName,
@@ -25,14 +26,13 @@ class TaskController extends GetxController {
         .orderBy('date')
         .snapshots()
         .listen((snapshot) {
-          taskList.value =
-              snapshot.docs.map((doc) {
-                return Task.fromFirestore(doc.id, doc.data());
-              }).toList();
-        });
+      taskList.value = snapshot.docs.map((doc) {
+        return Task.fromFirestore(doc.id, doc.data());
+      }).toList();
+    });
   }
 
-  Future<void> deleteTask(
+  Future deleteTask(
     String id,
     String collegeName,
     String departmentName,

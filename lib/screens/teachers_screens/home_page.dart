@@ -102,45 +102,38 @@ class _HomePageState extends State<HomePageT> {
     );
   }
 
-  Widget _buildUpcomingLectures() {
-    return Obx(() {
-      print("_taskController.taskList = ${_taskController.taskList.length}");
-      String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
-      print("Looking for date: $formattedDate");
+// Rest of your file as it is, sirf _buildUpcomingLectures() method replace karna hai
 
-      for (var t in _taskController.taskList) {
-        print("Lecture date: ${t.date}, title: ${t.title}");
-      }
+Widget _buildUpcomingLectures() {
+  return Obx(() {
+    // Directly use your formatted date from calendar
+    String formattedDate = DateFormat('M/d/yyyy').format(_selectedDate); // '8/28/2025'
+    List<Task> filteredTasks = _taskController.taskList.where((task) {
+      return task.date == formattedDate;
+    }).toList();
 
-      List<Task> filteredTasks =
-          _taskController.taskList
-              .where((task) => task.date == formattedDate)
-              .toList();
+    if (filteredTasks.isEmpty) {
+      return const Center(child: Text("No lectures found for selected date"));
+    }
 
-      print("Filtered tasks = ${filteredTasks.length}");
-
-      if (filteredTasks.isEmpty) {
-        return const Center(child: Text("No lectures found"));
-      }
-
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: filteredTasks.length,
-        itemBuilder: (context, index) {
-          Task task = filteredTasks[index];
-          return LectureCard(
-            lecture: Lecture(
-              title: task.title ?? 'No Title',
-              note: task.note ?? 'No Note',
-              date: task.date,
-              startTime: task.startTime,
-              endTime: task.endTime,
-              color: task.color,
-            ),
-          );
-        },
-      );
-    });
-  }
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filteredTasks.length,
+      itemBuilder: (context, index) {
+        Task task = filteredTasks[index];
+        return LectureCard(
+          lecture: Lecture(
+            title: task.title ?? 'No Title',
+            note: task.note ?? 'No Note',
+            date: task.date,
+            startTime: task.startTime,
+            endTime: task.endTime,
+            color: task.color,
+          ),
+        );
+      },
+    );
+  });
+}
 }
