@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
-import 'package:noproxys/components/App_widgets/teachers/Buttons/button.dart'; // Keep your BlueButton import
+import 'package:noproxys/components/App_widgets/teachers/Buttons/button.dart';
 
 class Scheduling extends StatefulWidget {
   const Scheduling({super.key});
@@ -19,10 +19,9 @@ class _SchedulingState extends State<Scheduling> {
   final String collegeName = 'Thakur Shyamnarayan Degree Collage';
   final String departmentName = 'BSC-IT';
 
-  String? selectedYearLevel; // FY/SY/TY
+  String? selectedYearLevel;
   String? selectedBatch;
   String? selectedSubject;
-  
 
   List<String> yearLevels = ['FY', 'SY', 'TY'];
   List<String> batches = [];
@@ -36,25 +35,22 @@ class _SchedulingState extends State<Scheduling> {
   int selectedColor = 0;
   String selectedRepeat = 'None';
 
-  // AcademicYear fetching & mapping
   Future<List<String>> _fetchAcademicYearsSorted() async {
-    final snap =
-        await FirebaseFirestore.instance
-            .collection('Collages')
-            .doc(collegeName)
-            .collection('Departments')
-            .doc(departmentName)
-            .collection('AcademicYear')
-            .get();
+    final snap = await FirebaseFirestore.instance
+        .collection('Collages')
+        .doc(collegeName)
+        .collection('Departments')
+        .doc(departmentName)
+        .collection('AcademicYear')
+        .get();
     final years = snap.docs.map((doc) => doc.id).toList();
-    years.sort(); // earliest to latest (alphabetic)
+    years.sort();
     return years;
   }
 
-  Future<void> fetchBatchesAndSubjects(String yearLevel) async {
+  Future<void> fetchBatches(String yearLevel) async {
     final years = await _fetchAcademicYearsSorted();
     String? academicYear;
-
     if (yearLevel == "FY" && years.isNotEmpty) {
       academicYear = years.last;
     } else if (yearLevel == "SY" && years.length > 1) {
@@ -67,61 +63,80 @@ class _SchedulingState extends State<Scheduling> {
       setState(() {
         batches = [];
         subjects = [];
+        selectedBatch = null;
+        selectedSubject = null;
       });
       return;
     }
 
-    // Fetch Batches
-    final batchSnap =
-        await FirebaseFirestore.instance
-            .collection('Collages')
-            .doc(collegeName)
-            .collection('Departments')
-            .doc(departmentName)
-            .collection('AcademicYear')
-            .doc(academicYear)
-            .collection(yearLevel)
-            .get();
+    final batchSnap = await FirebaseFirestore.instance
+        .collection('Collages')
+        .doc(collegeName)
+        .collection('Departments')
+        .doc(departmentName)
+        .collection('AcademicYear')
+        .doc(academicYear)
+        .collection(yearLevel)
+        .get();
 
     setState(() {
-      batches =
-          batchSnap.docs
-              .where((doc) => doc.id != 'Semesters')
-              .map((doc) => doc.id)
-              .toList();
+      batches = batchSnap.docs
+          .where((doc) => doc.id != 'Semesters')
+          .map((doc) => doc.id)
+          .toList();
       selectedBatch = null;
       subjects = [];
       selectedSubject = null;
     });
-
-    // Fetch default Semester based on yearLevel
-    String defaultSemester =
-        yearLevel == "FY"
-            ? "Semester-1"
-            : yearLevel == "SY"
-            ? "Semester-3"
-            : "Semester-5";
-
-    final semesterSnap =
-        await FirebaseFirestore.instance
-            .collection('Collages')
-            .doc(collegeName)
-            .collection('Departments')
-            .doc(departmentName)
-            .collection('AcademicYear')
-            .doc(academicYear)
-            .collection(yearLevel)
-            .doc(defaultSemester)
-            .get();
-
-    if (semesterSnap.exists) {
-      setState(() {
-        subjects = List<String>.from(semesterSnap['subjects'] ?? []);
-      });
-    }
   }
 
-  // ---- UI ----
+  Future<void> fetchCurrentSemesterSubjects(String yearLevel, String batch) async {
+    final years = await _fetchAcademicYearsSorted();
+    String? academicYear;
+    if (yearLevel == "FY" && years.isNotEmpty) {
+      academicYear = years.last;
+    } else if (yearLevel == "SY" && years.length > 1) {
+      academicYear = years[years.length - 2];
+    } else if (yearLevel == "TY" && years.length > 2) {
+      academicYear = years[years.length - 3];
+    }
+
+    if (academicYear == null) {
+      setState(() {
+        subjects = [];
+        selectedSubject = null;
+      });
+      return;
+    }
+
+    final now = DateTime.now();
+
+    final semestersSnap = await FirebaseFirestore.instance
+        .collection('Collages')
+        .doc(collegeName)
+        .collection('Departments')
+        .doc(departmentName)
+        .collection('AcademicYear')
+        .doc(academicYear)
+        .collection(yearLevel)
+        .doc(batch)
+        .collection('Semesters')
+        .where('startDate', isLessThanOrEqualTo: Timestamp.fromDate(now))
+        .where('endDate', isGreaterThanOrEqualTo: Timestamp.fromDate(now))
+        .limit(1)
+        .get();
+
+    List<String> semesterSubjects = [];
+    if (semestersSnap.docs.isNotEmpty) {
+      final currentSemesterDoc = semestersSnap.docs.first;
+      semesterSubjects = List<String>.from(currentSemesterDoc['subjects'] ?? []);
+    }
+    setState(() {
+      subjects = semesterSubjects;
+      selectedSubject = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -182,20 +197,29 @@ class _SchedulingState extends State<Scheduling> {
                     ),
                   ],
                 ),
-                // Year Level Dropdown (mandatory)
-                _buildDropdown("Year Level", selectedYearLevel, yearLevels, (
-                  val,
-                ) {
-                  setState(() => selectedYearLevel = val);
-                  if (val != null) fetchBatchesAndSubjects(val);
+                _buildDropdown("Year Level", selectedYearLevel, yearLevels, (val) {
+                  setState(() {
+                    selectedYearLevel = val;
+                    batches = [];
+                    selectedBatch = null;
+                    subjects = [];
+                    selectedSubject = null;
+                  });
+                  if (val != null) fetchBatches(val);
                 }),
                 _buildDropdown("Batch", selectedBatch, batches, (val) {
-                  setState(() => selectedBatch = val);
+                  setState(() {
+                    selectedBatch = val;
+                    subjects = [];
+                    selectedSubject = null;
+                  });
+                  if (val != null && selectedYearLevel != null) {
+                    fetchCurrentSemesterSubjects(selectedYearLevel!, val);
+                  }
                 }),
                 _buildDropdown("Subject", selectedSubject, subjects, (val) {
                   setState(() => selectedSubject = val);
                 }),
-
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -207,7 +231,7 @@ class _SchedulingState extends State<Scheduling> {
                         child: BlueButton(
                           lable: "Schedule",
                           onTap: _validateAndAddTask,
-                          label: '', // User your default label if needed
+                          label: '',
                         ),
                       ),
                     ),
@@ -280,12 +304,9 @@ class _SchedulingState extends State<Scheduling> {
           DropdownButtonFormField<String>(
             value: selected,
             hint: Text("Select $title"),
-            items:
-                items
-                    .map(
-                      (val) => DropdownMenuItem(value: val, child: Text(val)),
-                    )
-                    .toList(),
+            items: items
+                .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                .toList(),
             onChanged: onChanged,
             decoration: InputDecoration(
               border: OutlineInputBorder(
@@ -312,10 +333,9 @@ class _SchedulingState extends State<Scheduling> {
             child: CircleAvatar(
               radius: 14,
               backgroundColor: [Colors.red, Colors.blue, Colors.green][index],
-              child:
-                  selectedColor == index
-                      ? const Icon(Icons.done, color: Colors.white, size: 16)
-                      : Container(),
+              child: selectedColor == index
+                  ? const Icon(Icons.done, color: Colors.white, size: 16)
+                  : Container(),
             ),
           ),
         );
@@ -349,7 +369,6 @@ class _SchedulingState extends State<Scheduling> {
     if (picked != null) setState(() => endTime = picked.format(context));
   }
 
-  // 🔥 Random schedule code (keep as in your old code)
   String _generateScheduleCode() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     return List.generate(
@@ -358,7 +377,6 @@ class _SchedulingState extends State<Scheduling> {
     ).join();
   }
 
-  // ✔️ Validate and save schedule to Firestore
   void _validateAndAddTask() async {
     if (_titleController.text.isEmpty ||
         _noteController.text.isEmpty ||
@@ -375,9 +393,6 @@ class _SchedulingState extends State<Scheduling> {
       return;
     }
 
-    String scheduleCode = _generateScheduleCode();
-
-    // Automatically pick correct AcademicYear
     final years = await _fetchAcademicYearsSorted();
     String? academicYear;
     if (selectedYearLevel == "FY" && years.isNotEmpty) {
@@ -409,7 +424,7 @@ class _SchedulingState extends State<Scheduling> {
       'repeat': selectedRepeat,
       'color': selectedColor,
       'isCompleted': 0,
-      'scheduleCode': scheduleCode,
+      'scheduleCode': _generateScheduleCode(),
       'batch': selectedBatch,
       'subject': selectedSubject,
       'yearLevel': selectedYearLevel,
@@ -426,7 +441,7 @@ class _SchedulingState extends State<Scheduling> {
           .collection('AcademicYear')
           .doc(academicYear)
           .collection(selectedYearLevel!)
-          .doc(selectedBatch!) // Each batch is a doc under FY/SY/TY
+          .doc(selectedBatch!)
           .collection('LectureSchedules')
           .add(scheduleData);
 

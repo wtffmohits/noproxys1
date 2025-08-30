@@ -150,7 +150,7 @@ class _HomeScreenSState extends State<HomeScreenS> {
                 date: task.date,
                 startTime: task.startTime,
                 endTime: task.endTime,
-                color: task.color,
+                color: task.color, subject: 'N/A',
               ),
             ),
           );

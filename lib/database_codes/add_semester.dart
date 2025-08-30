@@ -1,104 +1,60 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-Future<void> seedFY_SY_TY_withSemesters({
-  required String collegeName,
-  required String departmentName,
-  required String academicYear, // e.g. "2022-2025"
+Future<void> addSemesters({
+  required String collage,
+  required String department,
+  required String academicYear,
+  required String yearLevel, // FY, SY, TY
+  required String batch,
 }) async {
   final firestore = FirebaseFirestore.instance;
 
-  // Map of year section (FY/SY/TY) and their respective semesters
-  final Map<String, Map<String, List<String>>> data = {
-    'FY': {
-      'Semester-1': ['Maths I', 'Physics I', 'Programming Fundamentals'],
-      'Semester-2': ['Maths II', 'Digital Logic', 'Data Structures'],
+  final semestersRef = firestore
+      .collection('Collages')
+      .doc(collage)
+      .collection('Departments')
+      .doc(department)
+      .collection('AcademicYear')
+      .doc(academicYear)
+      .collection(yearLevel)
+      .doc(batch)
+      .collection('Semesters');
+
+  // Example semester data - customize dates & subjects as needed
+  List<Map<String, dynamic>> semestersData = [
+    {
+      'name': 'Semester-1',
+      'startDate': Timestamp.fromDate(DateTime(2025, 8, 1)),
+      'endDate': Timestamp.fromDate(DateTime(2025, 12, 31)),
+      'subjects': ['Maths', 'Physics', 'Chemistry']
     },
-    'SY': {
-      'Semester-3': ['Discrete Maths', 'OOPS', 'Database'],
-      'Semester-4': ['Operating System', 'Web Dev', 'Java'],
-    },
-    'TY': {
-      'Semester-5': ['Networking', 'Software Engg', 'Mobile Computing'],
-      'Semester-6': ['Cloud', 'Security', 'Project Work'],
-    },
-  };
-
-  // Check main AcademicYear exists
-  final academicYearDoc =
-      await firestore
-          .collection('Collages')
-          .doc(collegeName)
-          .collection('Departments')
-          .doc(departmentName)
-          .collection('AcademicYear')
-          .doc(academicYear)
-          .get();
-
-  if (!academicYearDoc.exists) {
-    print(
-      '❌ AcademicYear "$academicYear" not found under "$departmentName". Pehle AcademicYear create karo.',
-    );
-    return;
-  }
-
-  // Iterate through FY/SY/TY
-  for (final yearSection in data.keys) {
-    // FY/SY/TY node create (if not present)
-    final yearSectionRef = firestore
-        .collection('Collages')
-        .doc(collegeName)
-        .collection('Departments')
-        .doc(departmentName)
-        .collection('AcademicYear')
-        .doc(academicYear)
-        .collection(yearSection);
-
-    // Iterate through semesters for this section
-    for (final entry in data[yearSection]!.entries) {
-      final semester = entry.key;
-      final subjects = entry.value;
-
-      final semesterDocRef = yearSectionRef
-          .doc(
-            'Students',
-          ) // Dummy doc, as we can't put a subcollection directly under a collection group
-          .collection('Semesters')
-          .doc(semester);
-
-      // Actually, Firestore structure favors direct:
-      // .../AcademicYear/{batch}/FY/Semesters/{semesterId}
-
-      final correctSemesterDocRef = firestore
-          .collection('Collages')
-          .doc(collegeName)
-          .collection('Departments')
-          .doc(departmentName)
-          .collection('AcademicYear')
-          .doc(academicYear)
-          .collection(yearSection)
-          .doc('Semesters')
-          .collection(semester);
-
-      final semesterDoc = await semesterDocRef.get();
-
-      if (!semesterDoc.exists) {
-        await semesterDocRef.set({'subjects': subjects});
-        print('✅ Added $yearSection | $semester');
-      } else {
-        print('⚠️ $yearSection | $semester already exists, skipping...');
-      }
+    {
+      'name': 'Semester-2',
+      'startDate': Timestamp.fromDate(DateTime(2026, 1, 1)),
+      'endDate': Timestamp.fromDate(DateTime(2026, 5, 31)),
+      'subjects': ['Biology', 'English', 'Computer Science']
     }
+  ];
+
+  for (var semester in semestersData) {
+    await semestersRef.doc(semester['name']).set({
+      'startDate': semester['startDate'],
+      'endDate': semester['endDate'],
+      'subjects': semester['subjects'],
+    });
+    print('Added ${semester['name']} successfully.');
   }
-  print('🎉 FY/SY/TY semesters added successfully!');
+
+  print('All semesters added for $yearLevel - $batch in $academicYear');
 }
 
-
-
-// write this in main.dart to seed the data
-
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // await seedSemesterSubjects(
-  //   'Thakur Shyamnarayan Degree Collage',
-  //   'BSC-IT',
-  //   '2022-2025',
-  // );
+// Usage example
+// void main() async {
+//   await addSemesters(
+//     collage: 'Thakur Shyamnarayan Degree Collage',
+//     department: 'BSC-IT',
+//     academicYear: '2025-2028',
+//     yearLevel: 'FY',
+//     batch: 'Batch-A',
+//   );
+// }

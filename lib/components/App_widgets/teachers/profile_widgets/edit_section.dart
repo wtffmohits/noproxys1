@@ -272,6 +272,7 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
         const SizedBox(height: 10),
         _buildDetailRow('Department', teacherData?["Department"]),
         _buildDetailRow('Designation', teacherData?["Designation"]),
+        _buildDetailRow('Staff ID', teacherData?["StaffID"]),
         // Aap yahan aur fields add kar sakte hain, jaise Subjects, StaffID, ya koi aur custom info
       ],
     );

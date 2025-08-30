@@ -1,8 +1,10 @@
+// filename: lacture_card.dart
 import 'package:flutter/material.dart';
 
 class Lecture {
   final String title;
   final String note;
+  final String subject;
   final String date;
   final String startTime;
   final String endTime;
@@ -11,6 +13,7 @@ class Lecture {
   Lecture({
     required this.title,
     required this.note,
+    required this.subject,
     required this.date,
     required this.startTime,
     required this.endTime,
@@ -23,95 +26,94 @@ class LectureCard extends StatelessWidget {
 
   const LectureCard({super.key, required this.lecture});
 
-  Color getCardColor() {
+  Color _getCardColor() {
     switch (lecture.color) {
-      case 0: return const Color(0xFFE74C3C);
-      case 1: return const Color(0xFF4B68FF);
-      case 2: return const Color(0xFF27AE60);
-      default: return Colors.grey.shade300;
+      case 0: return Colors.redAccent;
+      case 1: return const Color(0xFF4B68FF); // Blue
+      case 2: return Colors.green;
+      default: return Colors.grey.shade400;
     }
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade700),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade800,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: getCardColor().withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border(left: BorderSide(color: _getCardColor(), width: 5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 8,
-              height: 90,
-              decoration: BoxDecoration(
-                color: getCardColor(),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(15),
-                  bottomLeft: Radius.circular(15),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    lecture.title,
-                    style: const TextStyle(
-                      fontSize: 20,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _getCardColor().withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    lecture.subject.toUpperCase(),
+                    style: TextStyle(
+                      color: _getCardColor(),
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      fontSize: 12,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    lecture.note,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade700,
-                        fontStyle: FontStyle.italic),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined,
-                          size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 6),
-                      Text(lecture.date,
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 20),
-                      Icon(Icons.access_time,
-                          size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 6),
-                      Text('${lecture.startTime} - ${lecture.endTime}',
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ],
+                ),
+                _buildInfoRow(Icons.access_time_filled_rounded, '${lecture.startTime} - ${lecture.endTime}'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              lecture.title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
+            const SizedBox(height: 6),
+            if (lecture.note.isNotEmpty)
+              Text(
+                lecture.note,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
           ],
         ),
       ),

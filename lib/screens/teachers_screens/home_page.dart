@@ -129,7 +129,7 @@ Widget _buildUpcomingLectures() {
             date: task.date,
             startTime: task.startTime,
             endTime: task.endTime,
-            color: task.color,
+            color: task.color, subject: 'NA',
           ),
         );
       },

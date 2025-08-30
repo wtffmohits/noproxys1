@@ -6,8 +6,8 @@ Future<void> addSingleStudentToSpecifiedLocation() async {
   // Specify all details as per your needs:
   final Map<String, dynamic> studentData = {
     "name": "Mohit Singh",
-    "contact": "+919865287232",
-    "email": "rajputmohitsingh1715@gmail.com",
+    "contact": "+911234567893",
+    "email": "mohitsingh1715@gmail.com",
     "roll-no": 1,
     "subjects": [
       "Android Programing",
@@ -18,7 +18,7 @@ Future<void> addSingleStudentToSpecifiedLocation() async {
     ],
     "batchYear": "2023",
     "currentSemester": "Semester-1",
-    "year": "FY",
+    "year": "RY",
     // add more fields if required...
   };
 
@@ -30,7 +30,7 @@ Future<void> addSingleStudentToSpecifiedLocation() async {
       .collection('AcademicYear')
       .doc('2022-2025')
       .collection('FY')
-      .doc('Batch-A') // "Students" is a document here
+      .doc('Batch-B') // "Students" is a document here
       .collection('student-id') // "student-id" is a collection
       .doc('1') // student docID
       .set(studentData);
@@ -40,16 +40,5 @@ Future<void> addSingleStudentToSpecifiedLocation() async {
 
 
 // add students batch wise 
-// await FirebaseFirestore.instance
-//   .collection('Collages')
-//   .doc('Thakur Shyamnarayan Degree Collage')
-//   .collection('Departments')
-//   .doc('BSC-IT')
-//   .collection('AcademicYear')
-//   .doc('2022-2025')
-//   .collection('FY')
-//   .collection('Batch-A')
-//   .doc('student-id')
-//   .collection('student-id')   // Keep only if you want to allow multiple sub-levels
-//   .doc('1')
-//   .set(studentData);
+
+//   await addSingleStudentToSpecifiedLocation();
