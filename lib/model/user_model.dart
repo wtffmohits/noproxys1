@@ -23,10 +23,10 @@ class UserModel {
     required this.batchName,
   });
 
-  factory UserModel.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> document) {
-    final data = document.data()!;
+  factory UserModel.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
     return UserModel(
-      uid: document.id,
+      uid: doc.id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       role: data['role'] ?? '',
