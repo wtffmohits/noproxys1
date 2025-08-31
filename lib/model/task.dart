@@ -12,6 +12,7 @@ class Task {
   String? academicYear;
   String? yearLevel;
   String? batch;
+  String? subject;
 
   Task({
     this.id,
@@ -25,6 +26,7 @@ class Task {
     this.academicYear,
     this.yearLevel,
     this.batch,
+    this.subject,
   });
 
   factory Task.fromFirestore(String docId, Map<String, dynamic> data) {
@@ -40,6 +42,7 @@ class Task {
       academicYear: data['academicYear'],
       yearLevel: data['yearLevel'],
       batch: data['batch'],
+      subject: data['subject'] ?? 'N/A',
     );
   }
 

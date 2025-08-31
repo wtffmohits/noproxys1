@@ -66,7 +66,7 @@ class LectureCard extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border(left: BorderSide(color: _getCardColor(), width: 5)),
+        border: Border(left: BorderSide(color: _getCardColor(), width: 5), right: BorderSide(color: _getCardColor(), width: 5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),

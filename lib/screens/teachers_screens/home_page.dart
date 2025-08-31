@@ -28,6 +28,7 @@ class _HomePageState extends State<HomePageT> {
   final String academicYear = '2023-2026';
   final String yearLevel = 'FY';
   final String batchName = 'Batch-A';
+  final String subject = 'Mathematics';
 
   DateTime _selectedDate = DateTime.now();
 
@@ -39,7 +40,8 @@ class _HomePageState extends State<HomePageT> {
       departmentName: departmentName,
       academicYear: academicYear,
       yearLevel: yearLevel,
-      batchName: batchName,
+      batchName: batchName, 
+      subject: subject,
     );
   }
 
@@ -129,7 +131,8 @@ Widget _buildUpcomingLectures() {
             date: task.date,
             startTime: task.startTime,
             endTime: task.endTime,
-            color: task.color, subject: 'NA',
+            color: task.color, 
+            subject: task.subject ?? 'N/A',
           ),
         );
       },

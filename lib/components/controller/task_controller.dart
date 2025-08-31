@@ -12,6 +12,7 @@ class TaskController extends GetxController {
     required String academicYear,
     required String yearLevel,
     required String batchName,
+    required String subject,
   }) {
     FirebaseFirestore.instance
         .collection('Collages')
@@ -39,6 +40,7 @@ class TaskController extends GetxController {
     String academicYear,
     String yearLevel,
     String batchName,
+    String subject,
   ) async {
     await FirebaseFirestore.instance
         .collection('Collages')
