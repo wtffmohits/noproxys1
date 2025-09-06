@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
-import 'package:noproxys/components/App_widgets/teachers/Buttons/button.dart';
 
 class Scheduling extends StatefulWidget {
   const Scheduling({super.key});
@@ -46,6 +46,57 @@ class _SchedulingState extends State<Scheduling> {
     final years = snap.docs.map((doc) => doc.id).toList();
     years.sort();
     return years;
+  }
+
+  // Fetch UID from Firestore using logged-in user profile info
+  Future<String?> getCurrentUID() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('No user logged in');
+      return null;
+    }
+    print('Logged-in user UID: ${user.uid}');
+
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    if (!userDoc.exists) {
+      print('No user profile document found for UID: ${user.uid}');
+      return null;
+    }
+    final data = userDoc.data()!;
+    print('User profile: $data');
+
+    final collegeName = data['collegeName'];
+    final departmentName = data['departmentName'];
+    final role = data['role'];
+    final staffDocId = data['staffDocId'] ?? '1';
+
+    if ([collegeName, departmentName, role].any((element) => element == null || element == '')) {
+      print('One or more profile fields are missing');
+      return null;
+    }
+
+    print('Fetching staff UID from path: Collages/$collegeName/Departments/$departmentName/Staff/$role/UID/$staffDocId');
+
+    final staffDoc = await FirebaseFirestore.instance
+        .collection('Collages')
+        .doc(collegeName)
+        .collection('Departments')
+        .doc(departmentName)
+        .collection('Staff')
+        .doc(role)
+        .collection('UID')
+        .doc(staffDocId)
+        .get();
+
+    if (!staffDoc.exists) {
+      print('Staff document not found');
+      return null;
+    }
+
+    final staffData = staffDoc.data()!;
+    print('Staff document data: $staffData');
+
+    return staffData['UID']?.toString();
   }
 
   Future<void> fetchBatches(String yearLevel) async {
@@ -137,6 +188,112 @@ class _SchedulingState extends State<Scheduling> {
     });
   }
 
+  void _validateAndAddTask() async {
+    final user = FirebaseAuth.instance.currentUser;
+    String? uid;
+
+    if (user != null) {
+      uid = await getCurrentUID();
+    }
+
+    if (uid == null) {
+      Get.snackbar(
+        "Error",
+        "UID not found for logged-in user",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (_titleController.text.isEmpty ||
+        _noteController.text.isEmpty ||
+        selectedYearLevel == null ||
+        selectedBatch == null ||
+        selectedSubject == null) {
+      Get.snackbar(
+        "Error",
+        "Please fill all fields",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final years = await _fetchAcademicYearsSorted();
+    String? academicYear;
+    if (selectedYearLevel == "FY" && years.isNotEmpty) {
+      academicYear = years.last;
+    } else if (selectedYearLevel == "SY" && years.length > 1) {
+      academicYear = years[years.length - 2];
+    } else if (selectedYearLevel == "TY" && years.length > 2) {
+      academicYear = years[years.length - 3];
+    }
+
+    if (academicYear == null) {
+      Get.snackbar(
+        "Error",
+        "Academic Year not found",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    Map<String, dynamic> scheduleData = {
+      'title': _titleController.text,
+      'note': _noteController.text,
+      'date': DateFormat.yMd().format(selectedDate),
+      'startTime': startTime,
+      'endTime': endTime,
+      'reminderMinutes': reminderMinutes ?? 5,
+      'repeat': selectedRepeat,
+      'color': selectedColor,
+      'isCompleted': 0,
+      'scheduleCode': _generateScheduleCode(),
+      'batch': selectedBatch,
+      'subject': selectedSubject,
+      'yearLevel': selectedYearLevel,
+      'academicYear': academicYear,
+      'createdAt': FieldValue.serverTimestamp(),
+      'staffId': uid,
+    };
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('Collages')
+          .doc(collegeName)
+          .collection('Departments')
+          .doc(departmentName)
+          .collection('AcademicYear')
+          .doc(academicYear)
+          .collection(selectedYearLevel!)
+          .doc(selectedBatch!)
+          .collection('LectureSchedules')
+          .add(scheduleData);
+
+      Get.snackbar(
+        "Success",
+        "Schedule Created Successfully",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      Get.back();
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        "Failed to save schedule: $e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -164,7 +321,6 @@ class _SchedulingState extends State<Scheduling> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-
                 _buildInputField("Title", "Enter your Title", _titleController),
                 _buildInputField("Note", "Enter your Note", _noteController),
                 _buildInputField(
@@ -228,10 +384,9 @@ class _SchedulingState extends State<Scheduling> {
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: BlueButton(
-                          lable: "Schedule",
-                          onTap: _validateAndAddTask,
-                          label: '',
+                        child: ElevatedButton(
+                          onPressed: _validateAndAddTask,
+                          child: const Text("Schedule"),
                         ),
                       ),
                     ),
@@ -375,92 +530,5 @@ class _SchedulingState extends State<Scheduling> {
       6,
       (index) => chars[Random().nextInt(chars.length)],
     ).join();
-  }
-
-  void _validateAndAddTask() async {
-    if (_titleController.text.isEmpty ||
-        _noteController.text.isEmpty ||
-        selectedYearLevel == null ||
-        selectedBatch == null ||
-        selectedSubject == null) {
-      Get.snackbar(
-        "Error",
-        "Please fill all fields",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    final years = await _fetchAcademicYearsSorted();
-    String? academicYear;
-    if (selectedYearLevel == "FY" && years.isNotEmpty) {
-      academicYear = years.last;
-    } else if (selectedYearLevel == "SY" && years.length > 1) {
-      academicYear = years[years.length - 2];
-    } else if (selectedYearLevel == "TY" && years.length > 2) {
-      academicYear = years[years.length - 3];
-    }
-
-    if (academicYear == null) {
-      Get.snackbar(
-        "Error",
-        "Academic Year not found",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    Map<String, dynamic> scheduleData = {
-      'title': _titleController.text,
-      'note': _noteController.text,
-      'date': DateFormat.yMd().format(selectedDate),
-      'startTime': startTime,
-      'endTime': endTime,
-      'reminderMinutes': reminderMinutes ?? 5,
-      'repeat': selectedRepeat,
-      'color': selectedColor,
-      'isCompleted': 0,
-      'scheduleCode': _generateScheduleCode(),
-      'batch': selectedBatch,
-      'subject': selectedSubject,
-      'yearLevel': selectedYearLevel,
-      'academicYear': academicYear,
-      'createdAt': FieldValue.serverTimestamp(),
-    };
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('Collages')
-          .doc(collegeName)
-          .collection('Departments')
-          .doc(departmentName)
-          .collection('AcademicYear')
-          .doc(academicYear)
-          .collection(selectedYearLevel!)
-          .doc(selectedBatch!)
-          .collection('LectureSchedules')
-          .add(scheduleData);
-
-      Get.snackbar(
-        "Success",
-        "Schedule Created Successfully",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-      Get.back();
-    } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Failed to save schedule: $e",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
   }
 }

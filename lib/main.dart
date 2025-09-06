@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:noproxys/App.dart';
-import 'package:noproxys/components/controller/Db/user_control.dart';
+import 'package:noproxys/GetX.dart';
+import 'package:noproxys/components/controller/Db/user_control.dart' hide UserController;
 import 'package:noproxys/database_codes/Promote_FY.dart';
 import 'package:noproxys/database_codes/add_semester.dart';
 import 'package:noproxys/database_codes/add_student.dart';
@@ -16,6 +17,7 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   Get.put(UserController());
+  
   runApp(const MyApp());
 }
 

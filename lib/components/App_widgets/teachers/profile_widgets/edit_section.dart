@@ -10,7 +10,7 @@ class TeacherProfileEditPage extends StatefulWidget {
 }
 
 class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
-  Map? teacherData;
+  Map<String, dynamic>? teacherData;
   bool isLoading = true;
   String? errorMessage;
 
@@ -28,7 +28,6 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
 
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print("❗ User not logged in.");
       setState(() {
         isLoading = false;
         errorMessage = "You are not logged in.";
@@ -38,7 +37,6 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
 
     String? originalPhone = user.phoneNumber;
     if (originalPhone == null || originalPhone.isEmpty) {
-      print("❗ Phone number is null or empty.");
       setState(() {
         isLoading = false;
         errorMessage = "Phone number not available.";
@@ -51,51 +49,46 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
       normalizedPhone = '+91$normalizedPhone';
     }
 
-    print("🔍 Searching for teacher contact: $normalizedPhone");
     try {
       final firestore = FirebaseFirestore.instance;
 
-      final teacherQuerySnapshot =
-          await firestore
-              .collectionGroup('staff-id')
-              .where('Contact', isEqualTo: normalizedPhone)
-              .limit(1)
-              .get();
+      final teacherQuerySnapshot = await firestore
+          .collectionGroup('staff-id')
+          .where('Contact', isEqualTo: normalizedPhone)
+          .limit(1)
+          .get();
 
       if (teacherQuerySnapshot.docs.isEmpty) {
-        print("❌ No teacher found with contact: $normalizedPhone");
         setState(() {
           isLoading = false;
-          errorMessage =
-              "Teacher data could not be found for your contact number.";
+          errorMessage = "Teacher data could not be found for your contact number.";
         });
         return;
       }
 
       final teacherDoc = teacherQuerySnapshot.docs.first;
-      final teacherDataMap = teacherDoc.data();
-      print("✅ Teacher found: ${teacherDataMap['Name']}");
+      // Explicit type cast to avoid type error
+      final teacherDataMap = teacherDoc.data() as Map<String, dynamic>;
 
-      // Traverse up the document tree to get parent information
+      // Traverse up document tree to get parent infos
       DocumentReference designationRef = teacherDoc.reference.parent.parent!;
       DocumentReference departmentRef = designationRef.parent.parent!;
-      DocumentReference collageRef = departmentRef.parent.parent!;
-      final collageDoc = await collageRef.get();
-      final collageData = collageDoc.data() as Map?;
+      DocumentReference collegeRef = departmentRef.parent.parent!;
+      final collegeDoc = await collegeRef.get();
+      final collegeData = collegeDoc.data() as Map<String, dynamic>?;
 
       setState(() {
         teacherData = {
           ...teacherDataMap,
-          "Collage": collageData?['Collage'] ?? collageRef.id,
-          "CollageID": collageRef.id,
+          "College": collegeData?['Collage'] ?? collegeRef.id,
+          "CollegeID": collegeRef.id,
           "Department": departmentRef.id,
           "Designation": designationRef.id,
-          "StaffID": teacherDoc.id,
+          "StaffDocID": teacherDoc.id,
         };
         isLoading = false;
       });
     } catch (e) {
-      print("🔥 Firestore query error: $e");
       setState(() {
         isLoading = false;
         errorMessage = "An error occurred while fetching teacher data.";
@@ -142,7 +135,6 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
 
     return Stack(
       children: [
-        // Blue header background
         Container(height: 120, color: Colors.blue),
         SafeArea(
           child: SingleChildScrollView(
@@ -161,7 +153,7 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
                     radius: 55,
                     backgroundImage: AssetImage(
                       'assets/images/teacher_avatar.png',
-                    ), // change if you want different image
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -184,6 +176,7 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
                       buildTextField("Full Name", teacherData?["Name"]),
                       buildTextField("Email", teacherData?["email"]),
                       buildTextField("Contact", teacherData?["Contact"]),
+                      buildTextField("UID", teacherData?["UID"]), // Shows UID safely
                       const SizedBox(height: 20),
                       _buildCollegeChip(),
                       const Divider(height: 30),
@@ -206,21 +199,11 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
         readOnly: true,
         controller: TextEditingController(text: placeholder ?? 'N/A'),
         decoration: InputDecoration(
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 15,
-            horizontal: 15,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
           labelText: labelText,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: const TextStyle(
-            color: Colors.blue,
-            fontWeight: FontWeight.bold,
-          ),
-          hintStyle: const TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-          ),
+          labelStyle: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          hintStyle: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w400),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -245,7 +228,7 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              teacherData?["Collage"] ?? "Not Available",
+              teacherData?["College"] ?? "Not Available",
               style: TextStyle(
                 color: Colors.blue.shade900,
                 fontWeight: FontWeight.bold,
@@ -272,8 +255,7 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
         const SizedBox(height: 10),
         _buildDetailRow('Department', teacherData?["Department"]),
         _buildDetailRow('Designation', teacherData?["Designation"]),
-        _buildDetailRow('Staff ID', teacherData?["StaffID"]),
-        // Aap yahan aur fields add kar sakte hain, jaise Subjects, StaffID, ya koi aur custom info
+        _buildDetailRow('Staff Document ID', teacherData?["StaffDocID"]),
       ],
     );
   }
@@ -286,10 +268,7 @@ class _TeacherProfileEditPageState extends State<TeacherProfileEditPage> {
         children: [
           Text(
             '$label:',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600),
           ),
           Text(value ?? 'N/A', style: const TextStyle(fontSize: 15)),
         ],

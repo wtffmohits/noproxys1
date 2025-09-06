@@ -14,6 +14,17 @@ class TaskController extends GetxController {
     required String batchName,
     required String subject,
   }) {
+    // Validate inputs for Firestore path
+    if ([collegeName, departmentName, academicYear, yearLevel, batchName].any((s) => s.isEmpty)) {
+      print("Error: One or more Firestore path arguments are empty");
+      print('collegeName: $collegeName');
+      print('departmentName: $departmentName');
+      print('academicYear: $academicYear');
+      print('yearLevel: $yearLevel');
+      print('batchName: $batchName');
+      return;
+    }
+
     FirebaseFirestore.instance
         .collection('Collages')
         .doc(collegeName)
@@ -42,6 +53,12 @@ class TaskController extends GetxController {
     String batchName,
     String subject,
   ) async {
+    // Validate inputs for Firestore path
+    if ([collegeName, departmentName, academicYear, yearLevel, batchName].any((s) => s.isEmpty)) {
+      print("Error: One or more Firestore path arguments are empty on deleteTask");
+      return;
+    }
+
     await FirebaseFirestore.instance
         .collection('Collages')
         .doc(collegeName)

@@ -1,6 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-class UserModel {
+class UserProfile {
   final String collegeName;
   final String departmentName;
   final String role;
@@ -9,7 +7,7 @@ class UserModel {
   final String batchName;
   final String staffDocId;
 
-  UserModel({
+  UserProfile({
     required this.collegeName,
     required this.departmentName,
     required this.role,
@@ -19,8 +17,8 @@ class UserModel {
     required this.staffDocId,
   });
 
-  factory UserModel.fromMap(Map<String, dynamic> map) {
-    return UserModel(
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    return UserProfile(
       collegeName: map['collegeName'] ?? '',
       departmentName: map['departmentName'] ?? '',
       role: map['role'] ?? '',
@@ -30,6 +28,4 @@ class UserModel {
       staffDocId: map['staffDocId'] ?? '',
     );
   }
-
-  static fromSnapshot(DocumentSnapshot<Map<String, dynamic>> docSnapshot) {}
 }
